@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:orientation="vertical"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context="com.mart.listlock.playactivity.PlayActivity"
+    tools:showIn="@layout/activity_play">
+
+    <SeekBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/seek_bar"
+        android:layout_weight="0"/>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true"
+        android:scrollbars="none"
+        android:layout_weight="0">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/button_play"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/play"
+                android:onClick="onClickPlay" />
+
+            <Button
+                android:id="@+id/button_skip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/skip"
+                android:onClick="onClickNext" />
+
+            <Button
+                android:id="@+id/button_add_song"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/add_song"
+                android:onClick="onClickAddSong" />
+
+            <Button
+                android:id="@+id/button_new_playlist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/add_playlist"
+                android:onClick="onClickAddPlaylist" />
+
+        </LinearLayout>
+
+    </HorizontalScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:id="@+id/song_table"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:id="@+id/headers">
+
+            <TextView
+                style="@style/Header"
+                android:text="@string/header_title"
+                android:id="@+id/header_title"
+                android:layout_width="match_parent"
+                android:layout_weight="0.5"/>
+
+            <TextView
+                style="@style/Header"
+                android:text="@string/header_artist"
+                android:id="@+id/header_artist"
+                android:layout_width="match_parent"
+                android:layout_weight="0.5"/>
+
+            <TextView
+                style="@style/Header"
+                android:text="@string/header_duration"
+                android:id="@+id/header_duration"
+                android:layout_width="wrap_content"/>
+
+        </LinearLayout>
+
+        <View android:layout_width="match_parent"
+            android:background="@color/accent"
+            android:layout_height="1dp"/>
+
+        <ScrollView android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:id="@+id/song_scrollview">
+
+            <TableLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/song_list"/>
+
+        </ScrollView>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/admin_mode_banner"
+        android:orientation="vertical"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_weight="0"
+        android:onClick="onClickAdminModeBanner">
+
+        <View android:layout_width="match_parent"
+            android:background="@color/accent"
+            android:layout_height="1dp"/>
+
+        <TextView
+            style="@style/Header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/listlord_mode"
+            android:gravity="center"/>
+
+        <View android:layout_width="match_parent"
+            android:background="@color/accent"
+            android:layout_height="1dp"/>
+
+    </LinearLayout>
+
+</LinearLayout>

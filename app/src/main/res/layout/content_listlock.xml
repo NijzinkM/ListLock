@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/default_vertical_padding"
+    android:paddingLeft="@dimen/default_horizontal_padding"
+    android:paddingRight="@dimen/default_horizontal_padding"
+    android:paddingTop="@dimen/default_vertical_padding"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context=".listlockactivity.ListLockActivity"
+    tools:showIn="@layout/activity_listlock">
+
+
+    <com.mart.listlock.common.RoundedImageView
+        android:id="@+id/profile_image"
+        android:contentDescription="@string/profile_image"
+        android:layout_width="128dp"
+        android:layout_height="128dp"
+        android:layout_above="@+id/log_in_text"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="@dimen/default_vertical_padding"
+        android:paddingTop="@dimen/default_vertical_padding"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/not_logged_in"
+        android:id="@+id/log_in_text"
+        android:gravity="center_horizontal"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/main_button_zone"
+        android:layout_below="@+id/log_in_text"
+        android:layout_centerHorizontal="true">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/start"
+            android:id="@+id/start_button"
+            android:visibility="gone"
+            android:onClick="onClickStart"
+            />
+    </RelativeLayout>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/login"
+        android:id="@+id/log_in_button"
+        android:onClick="onClickLogin"
+        android:layout_below="@+id/log_in_text"
+        android:layout_centerHorizontal="true" />
+
+    <LinearLayout
+        android:id="@+id/admin_mode_banner"
+        android:orientation="vertical"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:onClick="onClickAdminModeBanner">
+
+        <View android:layout_width="match_parent"
+            android:background="@color/accent"
+            android:layout_height="1dp"/>
+
+        <TextView
+            style="@style/Header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/listlord_mode"
+            android:gravity="center"/>
+
+        <View android:layout_width="match_parent"
+            android:background="@color/accent"
+            android:layout_height="1dp"/>
+
+    </LinearLayout>
+
+</RelativeLayout>

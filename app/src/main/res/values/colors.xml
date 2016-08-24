@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent">#76ce2b</color>
+    <!--<color name="background">#2c2c2c</color>-->
+    <color name="background">#181818</color>
+    <color name="semitransparent">#88000000</color>
+    <color name="holo_light_btn_background">#89999999</color>
+</resources>
+

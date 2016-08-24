@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.mart.listlock">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/title_activity_listlock"
+        android:theme="@style/AppTheme">
+        <activity
+            android:id="@+id/listlock_activity"
+            android:name=".listlockactivity.ListLockActivity"
+            android:label="@string/app_name"
+            android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        // Needed for LoginActivity to work
+        <activity
+            android:id="@+id/login_activity"
+            android:name="com.spotify.sdk.android.authentication.LoginActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <activity
+            android:id="@+id/play_activity"
+            android:name="com.mart.listlock.playactivity.PlayActivity"
+            android:label="@string/title_activity_play"
+            android:parentActivityName=".listlockactivity.ListLockActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            // Needed for API 15 and below
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".listlockactivity.ListLockActivity" />
+        </activity>
+
+        <service
+            android:name="com.mart.listlock.playactivity.MusicService"
+            android:stopWithTask="true" />
+
+        <service android:name="com.mart.listlock.request.DownloadService" />
+
+        <activity
+            android:id="@+id/search_activity"
+            android:name="com.mart.listlock.playactivity.searchactivity.SearchActivity"
+            android:label="@string/title_activity_search"
+            android:parentActivityName="com.mart.listlock.playactivity.PlayActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.mart.listlock.playactivity.PlayActivity" />
+        </activity>
+
+        <activity
+            android:id="@+id/playlist_activity"
+            android:name="com.mart.listlock.playactivity.playlistactivity.PlaylistActivity"
+            android:label="@string/title_activity_playlist"
+            android:parentActivityName="com.mart.listlock.playactivity.PlayActivity"
+            android:theme="@style/AppTheme.Transparent">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.mart.listlock.playactivity.PlayActivity" />
+        </activity>
+    </application>
+
+</manifest>

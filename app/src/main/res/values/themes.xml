@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Generated with http://android-holo-colors.com -->
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+
+        <!--<item name="android:listChoiceIndicatorMultiple">@drawable/apptheme_btn_check_holo_dark</item>-->
+
+        <!--<item name="android:listChoiceIndicatorSingle">@drawable/apptheme_btn_radio_holo_dark</item>-->
+
+        <!--<item name="android:buttonStyle">@style/ButtonAppTheme</item>-->
+
+        <!--<item name="android:imageButtonStyle">@style/ImageButtonAppTheme</item>-->
+
+        <!--<item name="android:dropDownSpinnerStyle">@style/SpinnerAppTheme</item>-->
+
+        <!--<item name="android:progressBarStyleHorizontal">@style/ProgressBarAppTheme</item>-->
+
+        <!--<item name="android:seekBarStyle">@style/SeekBarAppTheme</item>-->
+
+        <!--<item name="android:ratingBarStyle">@style/RatingBarAppTheme</item>-->
+
+        <!--<item name="android:ratingBarStyleIndicator">@style/RatingBarBigAppTheme</item>-->
+
+        <!--<item name="android:ratingBarStyleSmall">@style/RatingBarSmallAppTheme</item>-->
+
+        <!--<item name="android:buttonStyleToggle">@style/ToggleAppTheme</item>-->
+
+        <!--<item name="android:listChoiceBackgroundIndicator">@drawable/apptheme_list_selector_holo_dark</item>-->
+
+        <!--<item name="android:activatedBackgroundIndicator">@drawable/apptheme_activated_background_holo_dark</item>-->
+
+        <!--<item name="android:fastScrollThumbDrawable">@drawable/apptheme_fastscroll_thumb_holo</item>-->
+
+        <item name="colorAccent">@color/accent</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:colorBackground">@color/background</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="AppTheme">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+
+    </style>
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Dark" />
+
+    <style name="AppTheme.Transparent" parent="AppTheme.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:layout_gravity">top</item>
+    </style>
+
+</resources>
