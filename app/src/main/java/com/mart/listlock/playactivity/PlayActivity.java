@@ -375,27 +375,29 @@ public class PlayActivity extends AppCompatActivity {
         super.onPause();
         LogW.d(LOG_TAG, "paused");
 
-        SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-        SharedPreferences.Editor editor = settings.edit();
+        if (musicBound) {
+            SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
+            SharedPreferences.Editor editor = settings.edit();
 
-        final List<SpotifySong> songs = musicService.getSongs();
+            final List<SpotifySong> songs = musicService.getSongs();
 
-        final int size = songs.size();
+            final int size = songs.size();
 
-        editor.putInt(KEY_SIZE, size);
+            editor.putInt(KEY_SIZE, size);
 
-        for (int i = 0; i < size; i++) {
-            final String uri = songs.get(i).getURI();
-            final boolean locked = songs.get(i).isLocked();
-            editor.putString(KEY_SONG + i, uri);
-            editor.putBoolean(KEY_SONG_LOCKED + i, locked);
-            LogW.d(LOG_TAG, "saving song URI: " + uri);
-            LogW.d(LOG_TAG, "saving song locked: " + locked);
+            for (int i = 0; i < size; i++) {
+                final String uri = songs.get(i).getURI();
+                final boolean locked = songs.get(i).isLocked();
+                editor.putString(KEY_SONG + i, uri);
+                editor.putBoolean(KEY_SONG_LOCKED + i, locked);
+                LogW.d(LOG_TAG, "saving song URI: " + uri);
+                LogW.d(LOG_TAG, "saving song locked: " + locked);
+            }
+
+            editor.apply();
+
+            unregisterReceiver(playbackEventReceiver);
         }
-
-        editor.apply();
-
-        unregisterReceiver(playbackEventReceiver);
     }
 
     @Override
