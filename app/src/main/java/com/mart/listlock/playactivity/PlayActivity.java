@@ -278,7 +278,7 @@ public class PlayActivity extends AppCompatActivity {
                 Intent intent = new Intent(PlayActivity.this, PlaylistActivity.class);
                 startActivityForResult(intent, PLAYLIST_REQUEST_CODE);
             }
-        }, adminModeBanner);
+        }, adminModeBanner, false);
     }
 
     public void onClickNext(View view) {
@@ -297,7 +297,7 @@ public class PlayActivity extends AppCompatActivity {
                     }
                 }
             }
-        }, adminModeBanner);
+        }, adminModeBanner, false);
     }
 
     public void onClickPlay(View view) {
@@ -353,7 +353,7 @@ public class PlayActivity extends AppCompatActivity {
                                     }
                                 }
                             }
-                        }, adminModeBanner);
+                        }, adminModeBanner, false);
                     }
                 })
                 .setNegativeButton(getString(R.string.no), null)

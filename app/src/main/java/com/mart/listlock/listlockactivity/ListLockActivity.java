@@ -426,7 +426,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
                             setLoggedIn(false);
                         }
-                    }, adminModeBanner);
+                    }, adminModeBanner, true);
                 }
                 break;
             case R.id.action_pin:
@@ -490,7 +490,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
                         alertDialog.show();
                     }
-                }, adminModeBanner);
+                }, adminModeBanner, true);
                 break;
             default:
                 break;

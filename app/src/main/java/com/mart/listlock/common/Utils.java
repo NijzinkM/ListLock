@@ -53,14 +53,14 @@ public class Utils {
         });
     }
 
-    public static void doWhenAuthorized(final Activity activity, final Action onCorrect, final LinearLayout adminModeBanner) {
-        if (ListLockActivity.inAdminMode()) {
+    public static void doWhenAuthorized(final Activity activity, final Action onCorrect, final LinearLayout adminModeBanner, final boolean forcePIN) {
+        if (ListLockActivity.inAdminMode() && forcePIN == false) {
             LogW.d(LOG_TAG, "in admin mode, executing Action");
             onCorrect.execute();
         } else {
-            LogW.d(LOG_TAG, "not in admin mode, asking for PIN");
+            LogW.d(LOG_TAG, forcePIN ? "forcePIN is true; asking for PIN" : "not in admin mode; asking for PIN");
             AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-            builder.setMessage(R.string.pin_required);
+            builder.setMessage(forcePIN ? R.string.pin_forced : R.string.pin_required);
 
             final EditText input = new EditText(activity);
             input.setInputType(InputType.TYPE_CLASS_NUMBER);
