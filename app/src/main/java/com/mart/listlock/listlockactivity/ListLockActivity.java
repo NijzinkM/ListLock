@@ -9,6 +9,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -144,7 +145,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
             final AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, intent);
             switch(response.getType()) {
                 case TOKEN:
-                    Utils.showTextBriefly(getString(R.string.login_success), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.login_success), ListLockActivity.this);
                     Utils.doWhileLoading(new Utils.Action() {
                         @Override
                         public void execute() {
@@ -166,13 +167,13 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                     }, this, getString(R.string.init_spotify_player));
                     break;
                 case ERROR:
-                    Utils.showTextBriefly(getString(R.string.login_fail), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.login_fail), this);
                     break;
                 case EMPTY:
-                    Utils.showTextBriefly(getString(R.string.login_cancel), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.login_cancel), this);
                     break;
                 default:
-                    Utils.showTextBriefly(getString(R.string.login_fail), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.login_fail), this);
                     break;
             }
         }
@@ -189,7 +190,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                 MusicService.player().awaitTermination(10, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 LogW.d(LOG_TAG, Log.getStackTraceString(e));
-                Utils.showTextProlonged(getString(R.string.player_terminate_fail), getApplicationContext());
+                Utils.showTextProlonged(getString(R.string.player_terminate_fail), this);
             }
         }
 
@@ -202,7 +203,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
             @Override
             public void onError(Throwable t) {
                 LogW.e(LOG_TAG, "could not initialize player: " + t.getMessage(), t);
-                Utils.showTextBriefly(getString(R.string.login_fail), getApplicationContext());
+                Utils.showTextBriefly(getString(R.string.login_fail), ListLockActivity.this);
             }
         }));
 
@@ -261,12 +262,22 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         Utils.setUnauthorized(adminModeBanner, this);
     }
 
-    private void swapButtons(boolean loggedIn) {
-        Button logInButton = (Button) findViewById(R.id.log_in_button);
-        logInButton.setVisibility(loggedIn ? View.GONE : View.VISIBLE);
+    private void swapButtons(final boolean loggedIn) {
+        final Button logInButton = (Button) findViewById(R.id.log_in_button);
+        logInButton.post(new Runnable() {
+            @Override
+            public void run() {
+                logInButton.setVisibility(loggedIn ? View.GONE : View.VISIBLE);
+            }
+        });
 
-        Button startButton = (Button) findViewById(R.id.start_button);
-        startButton.setVisibility(loggedIn ? View.VISIBLE : View.GONE);
+        final Button startButton = (Button) findViewById(R.id.start_button);
+        startButton.post(new Runnable() {
+            @Override
+            public void run() {
+                startButton.setVisibility(loggedIn ? View.VISIBLE : View.GONE);
+            }
+        });
     }
 
     private void setLoggedIn(boolean in) {
@@ -307,7 +318,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
     }
 
     private void downloadFileToImageView(final String url, final ImageView imageView) {
-        final DownloadReceiver mReceiver = new DownloadReceiver(new Handler());
+        final DownloadReceiver mReceiver = new DownloadReceiver(new Handler(Looper.getMainLooper()));
 
         final int requestId = 1234;
 
@@ -331,7 +342,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
                             if (data == null) {
                                 LogW.d(LOG_TAG, "downloader: data is null");
-                                Utils.showTextBriefly(getString(R.string.no_profile_image), getApplicationContext());
+                                Utils.showTextBriefly(getString(R.string.no_profile_image), ListLockActivity.this);
                                 imageView.setImageDrawable(null);
                             } else {
                                 Drawable image = new BitmapDrawable(getResources(), BitmapFactory.decodeByteArray(data, 0, data.length));

@@ -1,5 +1,6 @@
 package com.mart.listlock.common;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -32,26 +33,36 @@ public class Utils {
     public static final String KEY_PIN = "pin";
     private static final String LOG_TAG = Utils.class.getName();
 
-    public static void showTextBriefly(String text, Context context) {
-        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
-        toast.show();
+    public static void showTextBriefly(final String text, final Activity activity) {
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast toast = Toast.makeText(activity, text, Toast.LENGTH_SHORT);
+                toast.show();
+            }
+        });
     }
 
-    public static void showTextProlonged(String text, Context context) {
-        Toast toast = Toast.makeText(context, text, Toast.LENGTH_LONG);
-        toast.show();
+    public static void showTextProlonged(final String text, final Activity activity) {
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast toast = Toast.makeText(activity, text, Toast.LENGTH_LONG);
+                toast.show();
+            }
+        });
     }
 
-    public static void doWhenAuthorized(final Context context, final Action onCorrect, final LinearLayout adminModeBanner) {
+    public static void doWhenAuthorized(final Activity activity, final Action onCorrect, final LinearLayout adminModeBanner) {
         if (ListLockActivity.inAdminMode()) {
             LogW.d(LOG_TAG, "in admin mode, executing Action");
             onCorrect.execute();
         } else {
             LogW.d(LOG_TAG, "not in admin mode, asking for PIN");
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            AlertDialog.Builder builder = new AlertDialog.Builder(activity);
             builder.setMessage(R.string.pin_required);
 
-            final EditText input = new EditText(context);
+            final EditText input = new EditText(activity);
             input.setInputType(InputType.TYPE_CLASS_NUMBER);
             input.setTransformationMethod(PasswordTransformationMethod.getInstance());
             input.addTextChangedListener(new TextWatcher() {
@@ -75,7 +86,7 @@ public class Utils {
                 public void onClick(DialogInterface dialog, int which) {
                     final String inputText = input.getText().toString();
 
-                    SharedPreferences settings = context.getSharedPreferences(context.getString(R.string.app_name), 0);
+                    SharedPreferences settings = activity.getSharedPreferences(activity.getString(R.string.app_name), 0);
 
                     final String savedPin = settings.getString(KEY_PIN, "0000");
 
@@ -83,7 +94,7 @@ public class Utils {
                         setAuthorized(adminModeBanner);
                         onCorrect.execute();
                     } else {
-                        Utils.showTextBriefly(context.getString(R.string.invalid_pin), context);
+                        Utils.showTextBriefly(activity.getString(R.string.invalid_pin), activity);
                     }
                 }
             });

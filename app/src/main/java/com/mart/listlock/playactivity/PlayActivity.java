@@ -229,10 +229,10 @@ public class PlayActivity extends AppCompatActivity {
                     SpotifySong newSong = new SpotifySong(extras.getString(KEY_SONG_URI));
                     newSong.setLocked(false);
                     musicService.addSong(newSong);
-                    Utils.showTextBriefly(getString(R.string.song_added, newSong.getInfo().getName()), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.song_added, newSong.getInfo().getName()), this);
                 } catch (SpotifyWebRequestException e) {
                     LogW.e(LOG_TAG, "failed to request song", e);
-                    Utils.showTextBriefly(getString(R.string.add_song_failed), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.add_song_failed), this);
                 }
             } else if (requestCode == PLAYLIST_REQUEST_CODE) {
                 PlaylistInfo playlist = null;
@@ -245,7 +245,7 @@ public class PlayActivity extends AppCompatActivity {
                             List<SpotifySong> songs = playlist.getSongs();
                             if (songs.isEmpty()) {
                                 LogW.d(LOG_TAG, "no songs in playlist " + playlist.getName());
-                                Utils.showTextBriefly(getString(R.string.no_songs_in_playlist, playlist.getName()), getApplicationContext());
+                                Utils.showTextBriefly(getString(R.string.no_songs_in_playlist, playlist.getName()), PlayActivity.this);
                             } else {
                                 musicService.clearSongs();
                                 musicService.setMillis(0);
@@ -255,7 +255,7 @@ public class PlayActivity extends AppCompatActivity {
                             }
                         } catch (SpotifyWebRequestException e) {
                             LogW.e(LOG_TAG, "failed to request playlist", e);
-                            Utils.showTextBriefly(getString(R.string.request_playlist_failed), getApplicationContext());
+                            Utils.showTextBriefly(getString(R.string.request_playlist_failed), PlayActivity.this);
                         }
                     }
                 }, this);
@@ -312,14 +312,14 @@ public class PlayActivity extends AppCompatActivity {
         } catch (MusicServiceException e) {
             switch (e.getExceptionType()) {
                 case SONG_LIST_EMPTY:
-                    Utils.showTextBriefly(getString(R.string.song_list_empty), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.song_list_empty), this);
                     break;
                 case ACCOUNT_NOT_PREMIUM:
-                    Utils.showTextProlonged(getString(R.string.not_premium), getApplicationContext());
+                    Utils.showTextProlonged(getString(R.string.not_premium), this);
                     break;
                 case NO_TABLE_ATTACHED:
                     LogW.e(LOG_TAG, "no table attached");
-                    Utils.showTextBriefly(getString(R.string.play_or_pause_failed), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.play_or_pause_failed), this);
                     break;
             }
         }
@@ -342,9 +342,9 @@ public class PlayActivity extends AppCompatActivity {
                             public void execute() {
                                 try {
                                     if (musicService.removeSongFromTable(((SongInfoRow) view).getSongInfo().getId())) {
-                                        Utils.showTextBriefly(getString(R.string.song_removed, title), getApplicationContext());
+                                        Utils.showTextBriefly(getString(R.string.song_removed, title), PlayActivity.this);
                                     } else {
-                                        Utils.showTextBriefly(getString(R.string.song_not_in_list, title), getApplicationContext());
+                                        Utils.showTextBriefly(getString(R.string.song_not_in_list, title), PlayActivity.this);
                                     }
                                 } catch (MusicServiceException e) {
                                     if (e.getExceptionType() != MusicServiceException.ExceptionType.SONG_LIST_EMPTY) {
