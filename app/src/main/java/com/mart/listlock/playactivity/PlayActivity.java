@@ -215,7 +215,9 @@ public class PlayActivity extends AppCompatActivity {
         LogW.d(LOG_TAG, "resumed");
         registerReceiver(playbackEventReceiver, intentFilter);
 
-        Utils.setAuthorized(ListLockActivity.inAdminMode(), adminModeBanner);
+        if (ListLockActivity.inAdminMode()) {
+            Utils.setAuthorized(adminModeBanner);
+        }
     }
 
     @Override
@@ -360,7 +362,7 @@ public class PlayActivity extends AppCompatActivity {
 
     public void onClickAdminModeBanner(View view) {
         LogW.d(LOG_TAG, "view to leave admin mode clicked");
-        Utils.setAuthorized(false, adminModeBanner);
+        Utils.setUnauthorized(adminModeBanner, this);
     }
 
     public void setPlaying(boolean playing) {

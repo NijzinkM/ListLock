@@ -65,7 +65,8 @@
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:layout_alignParentBottom="true"
-        android:onClick="onClickAdminModeBanner">
+        android:onClick="onClickAdminModeBanner"
+        android:visibility="gone">
 
         <View android:layout_width="match_parent"
             android:background="@color/accent"

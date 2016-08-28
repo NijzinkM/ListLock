@@ -80,7 +80,7 @@ public class Utils {
                     final String savedPin = settings.getString(KEY_PIN, "0000");
 
                     if (savedPin.equals(inputText)) {
-                        setAuthorized(true, adminModeBanner);
+                        setAuthorized(adminModeBanner);
                         onCorrect.execute();
                     } else {
                         Utils.showTextBriefly(context.getString(R.string.invalid_pin), context);
@@ -96,21 +96,28 @@ public class Utils {
         }
     }
 
-    public static void setAuthorized(final boolean authorized, final LinearLayout adminModeBanner) {
-        adminModeBanner.setVisibility(authorized ? View.VISIBLE : View.GONE);
-        ListLockActivity.setAdminMode(authorized);
+    public static void setAuthorized(final LinearLayout adminModeBanner) {
+        adminModeBanner.setVisibility(View.VISIBLE);
+        ListLockActivity.setAdminMode(true);
     }
 
-    private static class BooleanWrapper {
-        private boolean bool;
-
-        public void setBoolean(boolean bool) {
-            this.bool = bool;
-        }
-
-        public boolean getBoolean() {
-            return bool;
-        }
+    public static void setUnauthorized(final LinearLayout adminModeBanner, final Context context) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setMessage(R.string.leave_listlord_mode);
+        builder.setNegativeButton(context.getString(R.string.no), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        builder.setPositiveButton(context.getString(R.string.yes), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                adminModeBanner.setVisibility(View.GONE);
+                ListLockActivity.setAdminMode(false);
+            }
+        });
+        builder.create().show();
     }
 
     public static abstract class Action {

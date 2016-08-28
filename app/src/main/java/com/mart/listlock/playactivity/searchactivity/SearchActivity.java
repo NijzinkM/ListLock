@@ -129,7 +129,9 @@ public class SearchActivity extends AppCompatActivity {
         super.onResume();
         LogW.d(LOG_TAG, "resumed");
 
-        Utils.setAuthorized(ListLockActivity.inAdminMode(), adminModeBanner);
+        if (ListLockActivity.inAdminMode()) {
+            Utils.setAuthorized(adminModeBanner);
+        }
 
         SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
 
@@ -166,7 +168,7 @@ public class SearchActivity extends AppCompatActivity {
 
     public void onClickAdminModeBanner(View view) {
         LogW.d(LOG_TAG, "view to leave admin mode clicked");
-        Utils.setAuthorized(false, adminModeBanner);
+        Utils.setUnauthorized(adminModeBanner, this);
     }
 
     private void search(final int pageToSearch) {

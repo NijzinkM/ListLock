@@ -85,7 +85,9 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         super.onResume();
         LogW.d(LOG_TAG, "resumed");
 
-        Utils.setAuthorized(ListLockActivity.inAdminMode(), adminModeBanner);
+        if (inAdminMode()) {
+            Utils.setAuthorized(adminModeBanner);
+        }
 
         SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
 
@@ -256,7 +258,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
     public void onClickAdminModeBanner(View view) {
         LogW.d(LOG_TAG, "view to leave admin mode clicked");
-        Utils.setAuthorized(false, adminModeBanner);
+        Utils.setUnauthorized(adminModeBanner, this);
     }
 
     private void swapButtons(boolean loggedIn) {
