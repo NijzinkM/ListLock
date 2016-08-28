@@ -42,7 +42,7 @@ public class SearchActivity extends AppCompatActivity {
     private static boolean searched;
     private static boolean allowSearching;
 
-    private TableRow headerRow;
+    private LinearLayout headerRow;
     private EditText searchField;
     private TableLayout searchResultsList;
     private View focusThief;
@@ -56,7 +56,7 @@ public class SearchActivity extends AppCompatActivity {
 
         LogW.d(LOG_TAG, "created with" + (savedInstanceState == null ? "out" : "") + " saved bundle");
 
-        headerRow = (TableRow) findViewById(R.id.results_header_row);
+        headerRow = (LinearLayout) findViewById(R.id.headers);
         searchField = (EditText) findViewById(R.id.search_field);
         searchResultsList = (TableLayout) findViewById(R.id.search_results_list);
         focusThief = findViewById(R.id.focus_thief);

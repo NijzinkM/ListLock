@@ -42,65 +42,58 @@
             android:onClick="onClickSearch"/>
     </LinearLayout>
 
-    <TableLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:stretchColumns="*"
+        android:orientation="vertical"
         android:id="@+id/search_results_table"
         android:layout_weight="1">
 
-        <TableLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:stretchColumns="0,1"
-            android:shrinkColumns="2"
+            android:orientation="horizontal"
             android:id="@+id/headers">
 
-
-            <TableRow
-                android:id="@+id/results_header_row"
+            <TextView
+                style="@style/Header"
+                android:text="@string/header_title"
+                android:id="@+id/header_title"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_weight="0.5"/>
 
-                <TextView
-                    style="@style/Header"
-                    android:text="@string/header_title"
-                    android:id="@+id/header_title"
-                    android:layout_column="0" />
+            <TextView
+                style="@style/Header"
+                android:text="@string/header_artist"
+                android:id="@+id/header_artist"
+                android:layout_width="match_parent"
+                android:layout_weight="0.5"/>
 
-                <TextView
-                    style="@style/Header"
-                    android:text="@string/header_artist"
-                    android:id="@+id/header_artist"
-                    android:layout_column="1" />
+            <TextView
+                style="@style/Header"
+                android:text="@string/header_duration"
+                android:id="@+id/header_duration"
+                android:layout_width="wrap_content"/>
 
-                <TextView
-                    style="@style/Header"
-                    android:text="@string/header_duration"
-                    android:id="@+id/header_duration"
-                    android:layout_column="2" />
-            </TableRow>
+        </LinearLayout>
 
-            <View android:layout_width="match_parent"
-                android:background="@color/accent"
-                android:layout_height="1dp"/>
-        </TableLayout>
+        <View android:layout_width="match_parent"
+            android:background="@color/accent"
+            android:layout_height="1dp"/>
 
-        <ScrollView
-            android:layout_width="match_parent"
+        <ScrollView android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:fillViewport="true"
             android:id="@+id/song_scrollview">
 
             <TableLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:stretchColumns="*"
+                android:layout_height="wrap_content"
                 android:id="@+id/search_results_list"/>
 
         </ScrollView>
 
-    </TableLayout>
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/admin_mode_banner"
