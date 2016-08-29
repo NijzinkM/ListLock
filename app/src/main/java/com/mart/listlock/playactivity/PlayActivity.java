@@ -362,9 +362,14 @@ public class PlayActivity extends AppCompatActivity {
         Utils.setUnauthorized(adminModeBanner, this);
     }
 
-    public void setPlaying(boolean playing) {
+    public void setPlaying(final boolean playing) {
         this.playing = playing;
-        playPauseButton.setText(playing ? R.string.pause : R.string.play);
+        playPauseButton.post(new Runnable() {
+            @Override
+            public void run() {
+                playPauseButton.setText(playing ? R.string.pause : R.string.play);
+            }
+        });
     }
 
     @Override

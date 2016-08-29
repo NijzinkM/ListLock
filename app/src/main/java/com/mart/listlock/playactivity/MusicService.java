@@ -1,7 +1,10 @@
 package com.mart.listlock.playactivity;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Binder;
 import android.os.IBinder;
 import android.widget.LinearLayout;
@@ -11,6 +14,7 @@ import com.mart.listlock.common.LogW;
 import com.mart.listlock.common.UserInfo;
 import com.mart.listlock.playactivity.spotifyobjects.SongInfoRemovableRow;
 import com.mart.listlock.playactivity.spotifyobjects.SpotifySong;
+import com.spotify.sdk.android.player.Connectivity;
 import com.spotify.sdk.android.player.Error;
 import com.spotify.sdk.android.player.Player;
 import com.spotify.sdk.android.player.PlayerEvent;
@@ -40,6 +44,7 @@ public class MusicService extends Service implements Player.NotificationCallback
         songs = new ArrayList<>();
         if (mPlayer != null) {
             mPlayer.addNotificationCallback(this);
+            mPlayer.setConnectivityStatus(getNetworkConnectivity(MusicService.this));
         }
     }
 
@@ -61,6 +66,17 @@ public class MusicService extends Service implements Player.NotificationCallback
         if (intent.hasExtra(KEY_PLAYBACK_EVENT)) {
             intent.setAction(MUSIC_SERVICE_ACTION);
             sendBroadcast(intent);
+        }
+    }
+
+    private Connectivity getNetworkConnectivity(Context context) {
+        ConnectivityManager connectivityManager;
+        connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = connectivityManager.getActiveNetworkInfo();
+        if (activeNetwork != null && activeNetwork.isConnected()) {
+            return Connectivity.fromNetworkType(activeNetwork.getType());
+        } else {
+            return Connectivity.OFFLINE;
         }
     }
 
@@ -185,7 +201,7 @@ public class MusicService extends Service implements Player.NotificationCallback
             throw new MusicServiceException(MusicServiceException.ExceptionType.ACCOUNT_NOT_PREMIUM);
 
         LogW.d(LOG_TAG, "songs currently in list: " + songs.size());
-        mPlayer.play(songs.get(0).getURI(), 0, 0);
+        mPlayer.play(songs.get(0).getURI(), 0, millis);
     }
 
     public void pause() {
