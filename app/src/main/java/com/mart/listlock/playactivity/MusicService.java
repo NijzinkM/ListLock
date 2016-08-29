@@ -5,29 +5,27 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.widget.LinearLayout;
-import android.widget.TableLayout;
-import android.widget.TableRow;
 
+import com.mart.listlock.R;
 import com.mart.listlock.common.LogW;
+import com.mart.listlock.common.UserInfo;
 import com.mart.listlock.playactivity.spotifyobjects.SongInfoRemovableRow;
 import com.mart.listlock.playactivity.spotifyobjects.SpotifySong;
-import com.mart.listlock.R;
-import com.mart.listlock.common.UserInfo;
-import com.spotify.sdk.android.player.PlayConfig;
+import com.spotify.sdk.android.player.Error;
 import com.spotify.sdk.android.player.Player;
-import com.spotify.sdk.android.player.PlayerNotificationCallback;
-import com.spotify.sdk.android.player.PlayerState;
+import com.spotify.sdk.android.player.PlayerEvent;
+import com.spotify.sdk.android.player.SpotifyPlayer;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MusicService extends Service implements PlayerNotificationCallback {
+public class MusicService extends Service implements Player.NotificationCallback {
 
     private static final String LOG_TAG = MusicService.class.getName();
     public static final String KEY_PLAYBACK_EVENT = "playbackevent";
     public static final String MUSIC_SERVICE_ACTION = "musicserviceaction";
 
-    private static Player mPlayer;
+    private static SpotifyPlayer mPlayer;
     private List<SpotifySong> songs;
     private final IBinder musicBind = new MusicBinder();
     private int millis= 0;
@@ -41,45 +39,29 @@ public class MusicService extends Service implements PlayerNotificationCallback 
         LogW.d(LOG_TAG, "created");
         songs = new ArrayList<>();
         if (mPlayer != null) {
-            mPlayer.addPlayerNotificationCallback(this);
+            mPlayer.addNotificationCallback(this);
         }
     }
 
     @Override
-    public void onPlaybackEvent(EventType eventType, final PlayerState playerState) {
-        LogW.d(LOG_TAG, "playback event received: " + eventType.name());
+    public void onPlaybackEvent(PlayerEvent event) {
+        LogW.d(LOG_TAG, "playback event received: " + event.name());
 
         Intent intent = new Intent();
-        try {
-            switch (eventType) {
-                case PAUSE:
-                    intent.putExtra(KEY_PLAYBACK_EVENT, PlaybackEvent.PAUSE);
-                    break;
-                case END_OF_CONTEXT:
-//                    intent.putExtra(KEY_PLAYBACK_EVENT, PlaybackEvent.PAUSE);
-                    next();
-                    break;
-                case TRACK_CHANGED:
-                case PLAY:
-                    intent.putExtra(KEY_PLAYBACK_EVENT, PlaybackEvent.PLAY);
-                    break;
-            }
-        } catch (MusicServiceException e) {
-            if (e.getExceptionType() == MusicServiceException.ExceptionType.SONG_LIST_EMPTY) {
-                pause();
-                intent.putExtra(KEY_PLAYBACK_EVENT, PlaybackEvent.RESET);
-            } else {
-                exception = e;
-                intent.putExtra(KEY_PLAYBACK_EVENT, PlaybackEvent.ERROR);
-            }
+
+        switch (event) {
+            case kSpPlaybackNotifyPause:
+                intent.putExtra(KEY_PLAYBACK_EVENT, PlayerEvent.kSpPlaybackNotifyPause);
+                break;
+            case kSpPlaybackNotifyPlay:
+                intent.putExtra(KEY_PLAYBACK_EVENT, PlayerEvent.kSpPlaybackNotifyPlay);
+                break;
         }
 
         if (intent.hasExtra(KEY_PLAYBACK_EVENT)) {
             intent.setAction(MUSIC_SERVICE_ACTION);
             sendBroadcast(intent);
         }
-
-        LogW.d(LOG_TAG, "position: " + playerState.positionInMs);
     }
 
     public Throwable getException() {
@@ -97,8 +79,8 @@ public class MusicService extends Service implements PlayerNotificationCallback 
     }
 
     @Override
-    public void onPlaybackError(ErrorType errorType, String s) {
-        LogW.d(LOG_TAG, "playback error received: " + errorType.name());
+    public void onPlaybackError(Error error) {
+        LogW.d(LOG_TAG, "playback error received: " + error.name());
     }
 
     public void addSong(SpotifySong song) {
@@ -203,7 +185,7 @@ public class MusicService extends Service implements PlayerNotificationCallback 
             throw new MusicServiceException(MusicServiceException.ExceptionType.ACCOUNT_NOT_PREMIUM);
 
         LogW.d(LOG_TAG, "songs currently in list: " + songs.size());
-        mPlayer.play(PlayConfig.createFor(songs.get(0).getURI()).withInitialPosition(millis));
+        mPlayer.play(songs.get(0).getURI(), 0, 0);
     }
 
     public void pause() {
@@ -226,11 +208,11 @@ public class MusicService extends Service implements PlayerNotificationCallback 
         this.millis = positionInMs;
     }
 
-    public static void setPlayer(Player player) {
+    public static void setPlayer(SpotifyPlayer player) {
         MusicService.mPlayer = player;
     }
 
-    public static Player player() {
+    public static SpotifyPlayer player() {
         return MusicService.mPlayer;
     }
 

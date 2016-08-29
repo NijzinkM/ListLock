@@ -20,8 +20,8 @@ import android.widget.SeekBar;
 
 import com.mart.listlock.R;
 import com.mart.listlock.common.LogW;
-import com.mart.listlock.common.Utils;
 import com.mart.listlock.common.UserInfo;
+import com.mart.listlock.common.Utils;
 import com.mart.listlock.listlockactivity.ListLockActivity;
 import com.mart.listlock.playactivity.playlistactivity.PlaylistActivity;
 import com.mart.listlock.playactivity.searchactivity.SearchActivity;
@@ -29,8 +29,7 @@ import com.mart.listlock.playactivity.spotifyobjects.Playlist;
 import com.mart.listlock.playactivity.spotifyobjects.PlaylistInfo;
 import com.mart.listlock.playactivity.spotifyobjects.SpotifySong;
 import com.mart.listlock.request.SpotifyWebRequestException;
-import com.spotify.sdk.android.player.PlayerState;
-import com.spotify.sdk.android.player.PlayerStateCallback;
+import com.spotify.sdk.android.player.PlaybackState;
 
 import java.util.List;
 import java.util.Timer;
@@ -150,20 +149,18 @@ public class PlayActivity extends AppCompatActivity {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                MusicService.player().getPlayerState(new PlayerStateCallback() {
-                    @Override
-                    public void onPlayerState(PlayerState playerState) {
-                        setPlaying(playerState.playing);
-                        if (playing && !trackingTouch && !MusicService.player().isShutdown()) {
-                            updateSeekBar(playerState.durationInMs, playerState.positionInMs);
+                PlaybackState playbackState = MusicService.player().getPlaybackState();
 
-                            // musicService might not be initialized yet
-                            if (musicService != null) {
-                                musicService.setMillis(playerState.positionInMs);
-                            }
-                        }
+                setPlaying(playbackState.isPlaying);
+
+                if (playing && !trackingTouch && !MusicService.player().isShutdown()) {
+                    updateSeekBar((int) MusicService.player().getMetadata().currentTrack.durationMs, (int) playbackState.positionMs);
+
+                    // musicService might not be initialized yet
+                    if (musicService != null) {
+                        musicService.setMillis((int) playbackState.positionMs);
                     }
-                });
+                }
             }
         }, 0, 1000);
 

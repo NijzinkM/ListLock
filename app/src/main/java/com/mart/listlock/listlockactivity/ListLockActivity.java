@@ -43,6 +43,7 @@ import com.spotify.sdk.android.player.Config;
 import com.spotify.sdk.android.player.ConnectionStateCallback;
 import com.spotify.sdk.android.player.Player;
 import com.spotify.sdk.android.player.Spotify;
+import com.spotify.sdk.android.player.SpotifyPlayer;
 
 import java.util.concurrent.TimeUnit;
 
@@ -132,7 +133,6 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                 new AuthenticationRequest.Builder(Constants.CLIENT_ID, AuthenticationResponse.Type.TOKEN, Constants.REDIRECT_URI);
 
         builder.setScopes(new String[]{"playlist-read", "playlist-read-private", "streaming"});
-        builder.setShowDialog(showDialog);
         return builder.build();
     }
 
@@ -185,18 +185,12 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         LogW.d(LOG_TAG, "initializing player for username: " + displayName);
 
         if (MusicService.player() != null) {
-            Spotify.destroyPlayer(this);
-            try {
-                MusicService.player().awaitTermination(10, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                LogW.d(LOG_TAG, Log.getStackTraceString(e));
-                Utils.showTextProlonged(getString(R.string.player_terminate_fail), this);
-            }
+            Spotify.destroyPlayer(MusicService.player());
         }
 
-        MusicService.setPlayer(Spotify.getPlayer(playerConfig, MusicService.class, new Player.InitializationObserver() {
+        MusicService.setPlayer(Spotify.getPlayer(playerConfig, MusicService.class, new SpotifyPlayer.InitializationObserver() {
             @Override
-            public void onInitialized(Player player) {
+            public void onInitialized(SpotifyPlayer player) {
                 MusicService.player().addConnectionStateCallback(ListLockActivity.this);
             }
 
@@ -237,9 +231,8 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
     }
 
     @Override
-    public void onLoginFailed(Throwable error) {
-        LogW.d(LOG_TAG, "login failed");
-        LogW.e(LOG_TAG, "stacktrace: " + Log.getStackTraceString(error));
+    public void onLoginFailed(int i) {
+        LogW.e(LOG_TAG, "login error " + i);
     }
 
     public void onClickLogin(View view) {
