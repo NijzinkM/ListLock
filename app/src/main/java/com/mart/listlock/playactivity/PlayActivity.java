@@ -30,6 +30,7 @@ import com.mart.listlock.playactivity.spotifyobjects.PlaylistInfo;
 import com.mart.listlock.playactivity.spotifyobjects.SpotifySong;
 import com.mart.listlock.request.SpotifyWebRequestException;
 import com.spotify.sdk.android.player.PlaybackState;
+import com.spotify.sdk.android.player.PlayerEvent;
 
 import java.util.List;
 import java.util.Timer;
@@ -154,12 +155,7 @@ public class PlayActivity extends AppCompatActivity {
                 setPlaying(playbackState.isPlaying);
 
                 if (playing && !trackingTouch && !MusicService.player().isShutdown()) {
-                    updateSeekBar((int) MusicService.player().getMetadata().currentTrack.durationMs, (int) playbackState.positionMs);
-
-                    // musicService might not be initialized yet
-                    if (musicService != null) {
-                        musicService.setMillis((int) playbackState.positionMs);
-                    }
+                    updateSeekBar((int) musicService.getCurrentSong().getInfo().getLength(), (int) playbackState.positionMs);
                 }
             }
         }, 0, 1000);
@@ -169,21 +165,16 @@ public class PlayActivity extends AppCompatActivity {
     private class PlaybackEventReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            MusicService.PlaybackEvent playbackEvent = (MusicService.PlaybackEvent) intent.getSerializableExtra(MusicService.KEY_PLAYBACK_EVENT);
+            PlayerEvent playbackEvent = (PlayerEvent) intent.getSerializableExtra(MusicService.KEY_PLAYBACK_EVENT);
             LogW.d(LOG_TAG, "playback event received: " + playbackEvent);
 
             switch (playbackEvent) {
-                case PLAY:
+                case kSpPlaybackNotifyPlay:
                     setPlaying(true);
                     break;
-                case PAUSE:
+                case kSpPlaybackNotifyPause:
                     setPlaying(false);
                     break;
-                case RESET:
-                    updateSeekBar(0, 0);
-                    break;
-                case ERROR:
-                    LogW.e(LOG_TAG, "failed to handle playback event", musicService.getException());
             }
         }
     }
@@ -245,7 +236,7 @@ public class PlayActivity extends AppCompatActivity {
                                 Utils.showTextBriefly(getString(R.string.no_songs_in_playlist, playlist.getName()), PlayActivity.this);
                             } else {
                                 musicService.clearSongs();
-                                musicService.setMillis(0);
+                                MusicService.player().seekToPosition(0);
                                 updateSeekBar(0, 0);
                                 musicService.pause();
                                 musicService.addAllSongs(songs);

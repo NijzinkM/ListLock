@@ -7,6 +7,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Binder;
 import android.os.IBinder;
+import android.util.Log;
 import android.widget.LinearLayout;
 
 import com.mart.listlock.R;
@@ -32,10 +33,8 @@ public class MusicService extends Service implements Player.NotificationCallback
     private static SpotifyPlayer mPlayer;
     private List<SpotifySong> songs;
     private final IBinder musicBind = new MusicBinder();
-    private int millis= 0;
     private LinearLayout songListLayout;
     private PlayActivity parent;
-    private Throwable exception;
 
     @Override
     public void onCreate() {
@@ -54,13 +53,14 @@ public class MusicService extends Service implements Player.NotificationCallback
 
         Intent intent = new Intent();
 
-        switch (event) {
-            case kSpPlaybackNotifyPause:
-                intent.putExtra(KEY_PLAYBACK_EVENT, PlayerEvent.kSpPlaybackNotifyPause);
-                break;
-            case kSpPlaybackNotifyPlay:
-                intent.putExtra(KEY_PLAYBACK_EVENT, PlayerEvent.kSpPlaybackNotifyPlay);
-                break;
+        intent.putExtra(KEY_PLAYBACK_EVENT, event);
+
+        if (getCurrentSong() != null && mPlayer.getPlaybackState().positionMs == getCurrentSong().getInfo().getLength()) {
+            try {
+                next();
+            } catch (MusicServiceException e) {
+                e.printStackTrace();
+            }
         }
 
         if (intent.hasExtra(KEY_PLAYBACK_EVENT)) {
@@ -80,18 +80,10 @@ public class MusicService extends Service implements Player.NotificationCallback
         }
     }
 
-    public Throwable getException() {
-        return exception;
-    }
-
     public void clearSongs() {
         LogW.d(LOG_TAG, "clearing song list");
         songs.clear();
         refreshSongTable();
-    }
-
-    public enum PlaybackEvent {
-        PLAY, PAUSE, RESET, ERROR
     }
 
     @Override
@@ -192,6 +184,10 @@ public class MusicService extends Service implements Player.NotificationCallback
     }
 
     public void play() throws MusicServiceException {
+        play((int) mPlayer.getPlaybackState().positionMs);
+    }
+
+    public void play(int position) throws MusicServiceException {
         LogW.d(LOG_TAG, "play called");
 
         if (songs.isEmpty())
@@ -201,7 +197,7 @@ public class MusicService extends Service implements Player.NotificationCallback
             throw new MusicServiceException(MusicServiceException.ExceptionType.ACCOUNT_NOT_PREMIUM);
 
         LogW.d(LOG_TAG, "songs currently in list: " + songs.size());
-        mPlayer.play(songs.get(0).getURI(), 0, millis);
+        mPlayer.play(songs.get(0).getURI(), 0, position);
     }
 
     public void pause() {
@@ -215,13 +211,11 @@ public class MusicService extends Service implements Player.NotificationCallback
             songs.remove(0);
         }
         refreshSongTable();
-        millis = 0;
-        play();
+        play(0);
     }
 
     public void seekToPosition(int positionInMs) {
         mPlayer.seekToPosition(positionInMs);
-        this.millis = positionInMs;
     }
 
     public static void setPlayer(SpotifyPlayer player) {
@@ -230,10 +224,6 @@ public class MusicService extends Service implements Player.NotificationCallback
 
     public static SpotifyPlayer player() {
         return MusicService.mPlayer;
-    }
-
-    public void setMillis(int millis) {
-        this.millis = millis;
     }
 
     @Override
@@ -252,6 +242,10 @@ public class MusicService extends Service implements Player.NotificationCallback
     public int onStartCommand(Intent intent, int flags, int startId) {
         LogW.d(LOG_TAG, "started");
         return super.onStartCommand(intent, flags, startId);
+    }
+
+    public SpotifySong getCurrentSong() {
+        return songs.get(0);
     }
 
     @Override
