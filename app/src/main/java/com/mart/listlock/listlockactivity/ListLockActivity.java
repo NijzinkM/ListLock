@@ -34,7 +34,9 @@ import com.mart.listlock.playactivity.MusicService;
 import com.mart.listlock.playactivity.PlayActivity;
 import com.mart.listlock.request.DownloadReceiver;
 import com.mart.listlock.request.DownloadService;
+import com.mart.listlock.request.SpotifyWebRequest;
 import com.mart.listlock.request.SpotifyWebRequestException;
+import com.mart.listlock.request.TokenSet;
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
 import com.spotify.sdk.android.authentication.AuthenticationResponse;
@@ -79,42 +81,6 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         if (inAdminMode()) {
             Utils.setAuthorized(adminModeBanner);
         }
-
-//        SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-//
-//        final String savedAccessToken = settings.getString(KEY_ACCESS_TOKEN, null);
-//
-//
-//        final String currentAccessToken = UserInfo.getAccessToken();
-//        if (currentAccessToken == null) {
-//            LogW.d(LOG_TAG, "current access token is null");
-//            if (savedAccessToken == null) {
-//                LogW.d(LOG_TAG, "no saved access token");
-//                setLoggedIn(false);
-//                return;
-//            } else {
-//                LogW.d(LOG_TAG, "saved access token restored");
-//                Utils.doWhileLoading(new Utils.Action() {
-//                    @Override
-//                    public void execute() {
-//                        try {
-//                            UserInfo.init(savedAccessToken);
-//
-//                            LogW.d(LOG_TAG, "access token=" + savedAccessToken);
-//
-//                            if (MusicService.player() == null) {
-//                                initPlayer(currentAccessToken, UserInfo.getDisplayName());
-//                            }
-//                        } catch (SpotifyWebRequestException e) {
-//                            LogW.e(LOG_TAG, "failed to restore user session", e);
-//                            Utils.showTextBriefly(getString(R.string.auto_login_failed), ListLockActivity.this);
-//                        }
-//                    }
-//                }, this);
-//            }
-//        }
-//
-//        setLoggedIn(true);
     }
 
     @Override
@@ -128,15 +94,14 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
             LogW.d(LOG_TAG, "login activity response type: " + type);
             switch (type) {
                 // Response was successful and contains auth token
-                case TOKEN:
+                case CODE:
                     Utils.showTextBriefly(getString(R.string.login_success), ListLockActivity.this);
                     Utils.doWhileLoading(new Utils.Action() {
                         @Override
                         public void execute() {
-                            onAuthenticationComplete(response);
+                            onCodeReceived(response);
                         }
                     }, ListLockActivity.this);
-                    onAuthenticationComplete(response);
                     break;
 
                 // Auth flow returned an error
@@ -155,43 +120,50 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         }
     }
 
-    private void onAuthenticationComplete(AuthenticationResponse authResponse) {
-        // Once we have obtained an authorization token, we can proceed with creating a Player.
-        LogW.d(LOG_TAG, "auth token received");
+    private void onCodeReceived(AuthenticationResponse authResponse) {
+        // Once we have obtained an authorization code, we can request the auth and refresh token
+        LogW.d(LOG_TAG, "authentication code received");
 
-        final String token = authResponse.getAccessToken();
-
-        if (MusicService.player() == null) {
-            Config playerConfig = new Config(getApplicationContext(), token, Constants.CLIENT_ID);
-            // Since the Player is a static singleton owned by the Spotify class, we pass "this" as
-            // the second argument in order to refcount it properly. Note that the method
-            // Spotify.destroyPlayer() also takes an Object argument, which must be the same as the
-            // one passed in here. If you pass different instances to Spotify.getPlayer() and
-            // Spotify.destroyPlayer(), that will definitely result in resource leaks.
-            MusicService.setPlayer(Spotify.getPlayer(playerConfig, this, new SpotifyPlayer.InitializationObserver() {
-                @Override
-                public void onInitialized(SpotifyPlayer player) {
-                    LogW.d(LOG_TAG, "player initialized");
-                    player.addConnectionStateCallback(ListLockActivity.this);
-                    // Trigger UI refresh
-                    updateViews();
-                }
-
-                @Override
-                public void onError(Throwable error) {
-                    LogW.e(LOG_TAG, "error in initialization: " + error.getMessage());
-                }
-            }));
-        } else {
-            MusicService.player().login(authResponse.getAccessToken());
-        }
+        final String code = authResponse.getCode();
 
         try {
-            UserInfo.init(token);
+            final TokenSet tokens = SpotifyWebRequest.requestTokens(code);
+            final String accessToken = tokens.getAccessToken();
+
+            if (MusicService.player() == null) {
+                Config playerConfig = new Config(getApplicationContext(), accessToken, Constants.CLIENT_ID);
+                // Since the Player is a static singleton owned by the Spotify class, we pass "this" as
+                // the second argument in order to refcount it properly. Note that the method
+                // Spotify.destroyPlayer() also takes an Object argument, which must be the same as the
+                // one passed in here. If you pass different instances to Spotify.getPlayer() and
+                // Spotify.destroyPlayer(), that will definitely result in resource leaks.
+                MusicService.setPlayer(Spotify.getPlayer(playerConfig, this, new SpotifyPlayer.InitializationObserver() {
+                    @Override
+                    public void onInitialized(SpotifyPlayer player) {
+                        LogW.d(LOG_TAG, "player initialized");
+                        player.addConnectionStateCallback(ListLockActivity.this);
+                        // Trigger UI refresh
+                        updateViews();
+                    }
+
+                    @Override
+                    public void onError(Throwable error) {
+                        LogW.e(LOG_TAG, "error in initialization: " + error.getMessage());
+                    }
+                }));
+            } else {
+                MusicService.player().login(accessToken);
+            }
+
+            try {
+                UserInfo.init(tokens);
+            } catch (SpotifyWebRequestException e) {
+                LogW.e(LOG_TAG, "failed to retrieve UserInfo", e);
+                Utils.showTextProlonged(getString(R.string.user_info_fail), ListLockActivity.this);
+            }
         } catch (SpotifyWebRequestException e) {
-            LogW.e(LOG_TAG, "failed to retrieve UserInfo; UserInfo set to default values", e);
-            UserInfo.setDisplayName("unknown");
-            Utils.showTextProlonged(getString(R.string.user_info_fail), ListLockActivity.this);
+            LogW.e(LOG_TAG, "auth request failed", e);
+            Utils.showTextBriefly(getString(R.string.login_fail), ListLockActivity.this);
         }
     }
 
@@ -242,7 +214,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
     }
 
     private void openLoginWindow() {
-        final AuthenticationRequest request = new AuthenticationRequest.Builder(Constants.CLIENT_ID, AuthenticationResponse.Type.TOKEN, Constants.REDIRECT_URI)
+        final AuthenticationRequest request = new AuthenticationRequest.Builder(Constants.CLIENT_ID, AuthenticationResponse.Type.CODE, Constants.REDIRECT_URI)
                 .setScopes(new String[]{"playlist-read", "playlist-read-private", "streaming"})
                 .build();
 

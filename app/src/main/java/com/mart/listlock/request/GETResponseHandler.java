@@ -1,7 +1,5 @@
 package com.mart.listlock.request;
 
-import android.util.Log;
-
 import com.mart.listlock.common.LogW;
 
 public abstract class GETResponseHandler {
@@ -10,7 +8,7 @@ public abstract class GETResponseHandler {
 
     SpotifyWebRequestException e;
 
-    public void handleResponse(GETResponse response) throws SpotifyWebRequestException {
+    public void handleResponse(HTTPResponse response) throws SpotifyWebRequestException {
         if (response.getException() != null) {
             e = new SpotifyWebRequestException(response.getException());
         }
@@ -38,13 +36,13 @@ public abstract class GETResponseHandler {
             throw e;
     }
 
-    protected abstract void handle200(GETResponse response);
+    protected abstract void handle200(HTTPResponse response);
 
-    protected abstract void handle400(GETResponse response);
+    protected abstract void handle400(HTTPResponse response);
 
-    protected abstract void handle401(GETResponse response);
+    protected abstract void handle401(HTTPResponse response);
 
-    protected abstract void handle404(GETResponse response);
+    protected abstract void handle404(HTTPResponse response);
 
     protected void setException(SpotifyWebRequestException e) {
         this.e = e;

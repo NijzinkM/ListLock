@@ -2,6 +2,7 @@ package com.mart.listlock.common;
 
 import com.mart.listlock.request.SpotifyWebRequest;
 import com.mart.listlock.request.SpotifyWebRequestException;
+import com.mart.listlock.request.TokenSet;
 
 public final class UserInfo {
 
@@ -12,8 +13,12 @@ public final class UserInfo {
     private static boolean premium;
     private static String accessToken;
     private static String refreshToken;
+    private static int expiresIn;
 
-    public static void init(String accessToken) throws SpotifyWebRequestException {
+    public static void init(TokenSet tokens) throws SpotifyWebRequestException {
+        accessToken = tokens.getAccessToken();
+        refreshToken = tokens.getRefreshToken();
+        expiresIn = tokens.getExpiresIn();
         SpotifyWebRequest.requestUserInfo(accessToken);
     }
 
@@ -71,5 +76,13 @@ public final class UserInfo {
 
     public static void setRefreshToken(String refreshToken) {
         UserInfo.refreshToken = refreshToken;
+    }
+
+    public static int getExpiresIn() {
+        return expiresIn;
+    }
+
+    public static void setExpiresIn(int expiresIn) {
+        UserInfo.expiresIn = expiresIn;
     }
 }

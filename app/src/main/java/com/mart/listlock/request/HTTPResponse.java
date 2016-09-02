@@ -2,7 +2,7 @@ package com.mart.listlock.request;
 
 import java.io.IOException;
 
-public class GETResponse {
+public class HTTPResponse {
 
     private String responseText;
     private IOException exception;
