@@ -33,6 +33,7 @@ import javax.net.ssl.HttpsURLConnection;
 public class SpotifyWebRequest {
 
     public static final String BASE_URL = "https://api.spotify.com/v1";
+    public static final String ACCOUNT_URL = "https://accounts.spotify.com/api/token";
     public static final int REQUEST_TIME_OUT = 5000;
 
     private static final String USER_AGENT = "Mozilla/5.0";
@@ -348,7 +349,7 @@ public class SpotifyWebRequest {
             }
         };
 
-        final String url = "https://accounts.spotify.com/api/token?grant_type=authorization_code&redirect_uri=" + Constants.REDIRECT_URI.replace("/", "%2F") + "&code=" + code + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
+        final String url = ACCOUNT_URL + "?grant_type=authorization_code&redirect_uri=" + Constants.REDIRECT_URI.replace("/", "%2F") + "&code=" + code + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
 
         try {
             responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.POST).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
@@ -358,6 +359,36 @@ public class SpotifyWebRequest {
         }
 
         return tokens;
+    }
+
+    public static void refreshAccessToken(final String refreshToken) throws SpotifyWebRequestException {
+        GETResponseHandler responseHandler = new DefaultGETResponseHandler() {
+            @Override
+            protected void handle200(HTTPResponse response) {
+                if (response == null) {
+                    setException(new SpotifyWebRequestException("response is null"));
+                    return;
+                }
+
+                JSONObject resultJSON;
+
+                try {
+                    resultJSON = new JSONObject(response.getResponseText());
+                    UserInfo.setAccessToken(resultJSON.getString("refresh_token"));
+                } catch (JSONException e) {
+                    setException(new SpotifyWebRequestException(e));
+                }
+            }
+        };
+
+        final String url = ACCOUNT_URL + "?grant_type=refresh_token&refresh_token=" + refreshToken + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
+
+        try {
+            responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.POST).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
+        } catch (InterruptedException | TimeoutException | ExecutionException e) {
+            LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
+            throw new SpotifyWebRequestException(e);
+        }
     }
 
     private static SongInfo readSongJSON(JSONObject songInfoJSON) throws JSONException {
