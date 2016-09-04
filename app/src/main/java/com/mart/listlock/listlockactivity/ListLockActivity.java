@@ -28,6 +28,7 @@ import android.widget.TextView;
 import com.mart.listlock.R;
 import com.mart.listlock.common.Constants;
 import com.mart.listlock.common.LogW;
+import com.mart.listlock.common.SavedPreferences;
 import com.mart.listlock.common.UserInfo;
 import com.mart.listlock.common.Utils;
 import com.mart.listlock.playactivity.MusicService;
@@ -46,8 +47,6 @@ import com.spotify.sdk.android.player.Spotify;
 import com.spotify.sdk.android.player.SpotifyPlayer;
 
 public class ListLockActivity extends AppCompatActivity implements ConnectionStateCallback {
-
-    private static final String KEY_ACCESS_TOKEN = "accesstoken";
 
     private static final int REQUEST_CODE = 8038;
     private static final String LOG_TAG = ListLockActivity.class.getName();
@@ -71,6 +70,23 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         LogW.d(LOG_TAG, "created with" + (savedInstanceState == null ? "out" : "") + " saved bundle");
 
         updateViews();
+
+        if (SavedPreferences.getRefreshToken(ListLockActivity.this) != null) {
+            LogW.d(LOG_TAG, "refresh token found");
+            try {
+                final TokenSet tokens = SpotifyWebRequest.refreshAccessToken(SavedPreferences.getRefreshToken(ListLockActivity.this));
+                LogW.d(LOG_TAG, "access token refreshed");
+                Utils.doWhileLoading(new Utils.Action() {
+                    @Override
+                    public void execute() {
+                        onTokensReceived(tokens);
+                    }
+                }, ListLockActivity.this);
+            } catch (SpotifyWebRequestException e) {
+                LogW.e(LOG_TAG, "failed to refresh access token", e);
+                Utils.showTextBriefly(getString(R.string.auto_login_failed), ListLockActivity.this);
+            }
+        }
     }
 
     @Override
@@ -128,42 +144,54 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
         try {
             final TokenSet tokens = SpotifyWebRequest.requestTokens(code);
-            final String accessToken = tokens.getAccessToken();
+            LogW.d(LOG_TAG, "tokens received");
 
-            if (MusicService.player() == null) {
-                Config playerConfig = new Config(getApplicationContext(), accessToken, Constants.CLIENT_ID);
-                // Since the Player is a static singleton owned by the Spotify class, we pass "this" as
-                // the second argument in order to refcount it properly. Note that the method
-                // Spotify.destroyPlayer() also takes an Object argument, which must be the same as the
-                // one passed in here. If you pass different instances to Spotify.getPlayer() and
-                // Spotify.destroyPlayer(), that will definitely result in resource leaks.
-                MusicService.setPlayer(Spotify.getPlayer(playerConfig, this, new SpotifyPlayer.InitializationObserver() {
-                    @Override
-                    public void onInitialized(SpotifyPlayer player) {
-                        LogW.d(LOG_TAG, "player initialized");
-                        player.addConnectionStateCallback(ListLockActivity.this);
-                        // Trigger UI refresh
-                        updateViews();
-                    }
+            SavedPreferences.setAccessToken(ListLockActivity.this, tokens.getAccessToken());
+            SavedPreferences.setRefreshToken(ListLockActivity.this, tokens.getRefreshToken());
 
-                    @Override
-                    public void onError(Throwable error) {
-                        LogW.e(LOG_TAG, "error in initialization: " + error.getMessage());
-                    }
-                }));
-            } else {
-                MusicService.player().login(accessToken);
-            }
-
-            try {
-                UserInfo.init(tokens);
-            } catch (SpotifyWebRequestException e) {
-                LogW.e(LOG_TAG, "failed to retrieve UserInfo", e);
-                Utils.showTextProlonged(getString(R.string.user_info_fail), ListLockActivity.this);
-            }
+            onTokensReceived(tokens);
         } catch (SpotifyWebRequestException e) {
             LogW.e(LOG_TAG, "auth request failed", e);
             Utils.showTextBriefly(getString(R.string.login_fail), ListLockActivity.this);
+        }
+    }
+
+    private void onTokensReceived(TokenSet tokens) {
+        final String accessToken = tokens.getAccessToken();
+        if (MusicService.player() == null) {
+            Config playerConfig = new Config(getApplicationContext(), accessToken, Constants.CLIENT_ID);
+            // Since the Player is a static singleton owned by the Spotify class, we pass "this" as
+            // the second argument in order to refcount it properly. Note that the method
+            // Spotify.destroyPlayer() also takes an Object argument, which must be the same as the
+            // one passed in here. If you pass different instances to Spotify.getPlayer() and
+            // Spotify.destroyPlayer(), that will definitely result in resource leaks.
+            MusicService.setPlayer(Spotify.getPlayer(playerConfig, this, new SpotifyPlayer.InitializationObserver() {
+                @Override
+                public void onInitialized(SpotifyPlayer player) {
+                    LogW.d(LOG_TAG, "player initialized");
+                    player.addConnectionStateCallback(ListLockActivity.this);
+                    // Trigger UI refresh
+                }
+
+                @Override
+                public void onError(Throwable error) {
+                    LogW.e(LOG_TAG, "error in initialization: " + error.getMessage());
+                }
+            }));
+        } else {
+            MusicService.player().login(accessToken);
+        }
+
+        initUserInfo(tokens);
+        updateViews();
+    }
+
+    private void initUserInfo(TokenSet tokens) {
+        try {
+            UserInfo.init(tokens);
+        } catch (SpotifyWebRequestException e) {
+            LogW.e(LOG_TAG, "failed to retrieve UserInfo", e);
+            Utils.showTextProlonged(getString(R.string.user_info_fail), ListLockActivity.this);
         }
     }
 
@@ -411,16 +439,8 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
     @Override
     public void onPause() {
-        super.onPause();
         LogW.d(LOG_TAG, "paused");
-
-        SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putString(KEY_ACCESS_TOKEN, UserInfo.getAccessToken());
-
-        LogW.d(LOG_TAG, "saving access token=" + UserInfo.getAccessToken());
-
-        editor.apply();
+        super.onPause();
     }
 
     @Override
@@ -453,8 +473,9 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                                 MusicService.player().logout();
                             }
 
-                            UserInfo.setAccessToken(null);
                             AuthenticationClient.clearCookies(ListLockActivity.this);
+                            SavedPreferences.clearTokenPrefs(ListLockActivity.this);
+                            updateViews();
                         }
                     }, adminModeBanner, true);
                 }

@@ -20,6 +20,7 @@ import android.widget.SeekBar;
 
 import com.mart.listlock.R;
 import com.mart.listlock.common.LogW;
+import com.mart.listlock.common.SavedPreferences;
 import com.mart.listlock.common.UserInfo;
 import com.mart.listlock.common.Utils;
 import com.mart.listlock.listlockactivity.ListLockActivity;
@@ -42,10 +43,7 @@ public class PlayActivity extends AppCompatActivity {
     public static final int SEARCH_REQUEST_CODE = 9129;
     public static final int PLAYLIST_REQUEST_CODE = 1046;
     public static final String KEY_SONG_URI = "song_uri";
-    public static final String KEY_SONG = "song";
-    public static final String KEY_SONG_LOCKED = "song_locked";
     public static final String KEY_PLAYLIST_ID = "playlist_id";
-    private static final String KEY_SIZE = "size";
 
     private MusicService musicService;
     private Intent playIntent;
@@ -119,15 +117,11 @@ public class PlayActivity extends AppCompatActivity {
                 if (!Utils.isNetworkAvailable(PlayActivity.this)) {
                     Utils.showTextBriefly(getString(R.string.no_internet), PlayActivity.this);
                 } else if (musicService.getSongs().isEmpty()) {
-                    final SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-
                     Utils.doWhileLoading(new Utils.Action() {
                         @Override
                         public void execute() {
                             try {
-                                for (int i = 0; i < settings.getInt(KEY_SIZE, 0); i++) {
-                                    SpotifySong song = new SpotifySong(settings.getString(KEY_SONG + i, null));
-                                    song.setLocked(settings.getBoolean(KEY_SONG_LOCKED + i, true));
+                                for (SpotifySong song : SavedPreferences.getSongs(PlayActivity.this)) {
                                     musicService.addSong(song);
                                 }
                             } catch (SpotifyWebRequestException e) {
@@ -146,20 +140,25 @@ public class PlayActivity extends AppCompatActivity {
             }
         };
 
-        timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                PlaybackState playbackState = MusicService.player().getPlaybackState();
+        timer = new MusicTimer();
+    }
 
-                setPlaying(playbackState.isPlaying);
+    private class MusicTimer extends Timer {
+        @Override
+        public void schedule(TimerTask task, long delay, long period) {
+            super.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    PlaybackState playbackState = MusicService.player().getPlaybackState();
 
-                if (playing && !trackingTouch && !MusicService.player().isShutdown()) {
-                    updateSeekBar((int) musicService.getCurrentSong().getInfo().getLength(), (int) playbackState.positionMs);
+                    setPlaying(playbackState.isPlaying);
+
+                    if (playing && !trackingTouch && !MusicService.player().isShutdown() && musicService.getCurrentSong() != null) {
+                        updateSeekBar((int) musicService.getCurrentSong().getInfo().getLength(), (int) playbackState.positionMs);
+                    }
                 }
-            }
-        }, 0, 1000);
-
+            }, 0, 1000);
+        }
     }
 
     private class PlaybackEventReceiver extends BroadcastReceiver {
@@ -202,6 +201,8 @@ public class PlayActivity extends AppCompatActivity {
         super.onResume();
         LogW.d(LOG_TAG, "resumed");
         registerReceiver(playbackEventReceiver, intentFilter);
+
+        timer = new MusicTimer();
 
         if (ListLockActivity.inAdminMode()) {
             Utils.setAuthorized(adminModeBanner);
@@ -248,6 +249,8 @@ public class PlayActivity extends AppCompatActivity {
                     }
                 }, this);
             }
+
+            SavedPreferences.setSongs(musicService.getSongs(), PlayActivity.this);
         }
     }
 
@@ -368,26 +371,10 @@ public class PlayActivity extends AppCompatActivity {
         super.onPause();
         LogW.d(LOG_TAG, "paused");
 
+        timer.cancel();
+
         if (musicBound) {
-            SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-            SharedPreferences.Editor editor = settings.edit();
-
-            final List<SpotifySong> songs = musicService.getSongs();
-
-            final int size = songs.size();
-
-            editor.putInt(KEY_SIZE, size);
-
-            for (int i = 0; i < size; i++) {
-                final String uri = songs.get(i).getURI();
-                final boolean locked = songs.get(i).isLocked();
-                editor.putString(KEY_SONG + i, uri);
-                editor.putBoolean(KEY_SONG_LOCKED + i, locked);
-                LogW.d(LOG_TAG, "saving song URI: " + uri);
-                LogW.d(LOG_TAG, "saving song locked: " + locked);
-            }
-
-            editor.apply();
+            SavedPreferences.setSongs(musicService.getSongs(), PlayActivity.this);
 
             unregisterReceiver(playbackEventReceiver);
         }

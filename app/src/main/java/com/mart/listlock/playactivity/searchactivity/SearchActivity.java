@@ -18,6 +18,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.mart.listlock.common.LogW;
+import com.mart.listlock.common.SavedPreferences;
 import com.mart.listlock.common.Utils;
 import com.mart.listlock.common.UserInfo;
 import com.mart.listlock.listlockactivity.ListLockActivity;
@@ -33,8 +34,6 @@ import java.util.List;
 public class SearchActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = SearchActivity.class.getName();
-    private static final String KEY_KEYWORD = "keyword";
-    private static final String KEY_SEARCHED = "searched";
     private static final int MAX_PAGES = 5;
 
     private static String keyword;
@@ -102,7 +101,7 @@ public class SearchActivity extends AppCompatActivity {
                 // if diff is zero or less, then the bottom has been reached
                 if( diff <= 0 ) {
                     final boolean shouldSearch = searched && allowSearching;
-                    LogW.d(LOG_TAG, "ScrollView bottom reached. Should search: " + shouldSearch);
+                    LogW.d(LOG_TAG, "ScrollView bottom reached; searched = " + searched + "; allowSearching = " + allowSearching);
                     if (shouldSearch) {
                         selectPageAndSearch();
                     }
@@ -118,6 +117,7 @@ public class SearchActivity extends AppCompatActivity {
             Utils.showTextBriefly(getString(R.string.no_internet), this);
         } else if (pages < MAX_PAGES) {
             pages++;
+            LogW.d(LOG_TAG, "pages count set to " + pages);
             search(pages - 1);
         } else {
             LogW.d(LOG_TAG, "max pages reached");
@@ -133,21 +133,14 @@ public class SearchActivity extends AppCompatActivity {
             Utils.setAuthorized(adminModeBanner);
         }
 
-        SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-
-        final String savedKeyword = settings.getString(KEY_KEYWORD, null);
-        final boolean savedSearched = settings.getBoolean(KEY_SEARCHED, false);
-
-        LogW.d(LOG_TAG, "restoring keyword=" + savedKeyword);
-        LogW.d(LOG_TAG, "restoring searched=" + savedSearched);
-
-        keyword = savedKeyword;
-        searched = savedSearched;
+        keyword = SavedPreferences.getKeyword(SearchActivity.this);
+        searched = SavedPreferences.getSearched(SearchActivity.this);
 
         searchField.setText(keyword);
 
         if (searched) {
             if (searchResultsList.getChildCount() == 0) {
+                pages = 1;
                 search(0);
             }
         } else {
@@ -224,15 +217,7 @@ public class SearchActivity extends AppCompatActivity {
         super.onPause();
         LogW.d(LOG_TAG, "paused");
 
-        SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putString(KEY_KEYWORD, keyword);
-        editor.putBoolean(KEY_SEARCHED, searched);
-
-        LogW.d(LOG_TAG, "saving keyword=" + keyword);
-        LogW.d(LOG_TAG, "saving searched=" + searched);
-
-        editor.apply();
+        SavedPreferences.setResults(keyword, searched, SearchActivity.this);
     }
 
     @Override

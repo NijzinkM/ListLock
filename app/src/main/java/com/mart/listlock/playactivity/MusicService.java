@@ -245,6 +245,9 @@ public class MusicService extends Service implements Player.NotificationCallback
     }
 
     public SpotifySong getCurrentSong() {
+        if (songs == null || songs.isEmpty()) {
+            return null;
+        }
         return songs.get(0);
     }
 

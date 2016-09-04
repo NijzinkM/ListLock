@@ -361,7 +361,9 @@ public class SpotifyWebRequest {
         return tokens;
     }
 
-    public static void refreshAccessToken(final String refreshToken) throws SpotifyWebRequestException {
+    public static TokenSet refreshAccessToken(final String refreshToken) throws SpotifyWebRequestException {
+        final TokenSet tokens = new TokenSet();
+
         GETResponseHandler responseHandler = new DefaultGETResponseHandler() {
             @Override
             protected void handle200(HTTPResponse response) {
@@ -374,7 +376,9 @@ public class SpotifyWebRequest {
 
                 try {
                     resultJSON = new JSONObject(response.getResponseText());
-                    UserInfo.setAccessToken(resultJSON.getString("refresh_token"));
+                    tokens.setAccessToken(resultJSON.getString("access_token"));
+                    tokens.setExpiresIn(resultJSON.getInt("expires_in"));
+                    tokens.setRefreshToken(refreshToken);
                 } catch (JSONException e) {
                     setException(new SpotifyWebRequestException(e));
                 }
@@ -389,6 +393,8 @@ public class SpotifyWebRequest {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
         }
+
+        return tokens;
     }
 
     private static SongInfo readSongJSON(JSONObject songInfoJSON) throws JSONException {
