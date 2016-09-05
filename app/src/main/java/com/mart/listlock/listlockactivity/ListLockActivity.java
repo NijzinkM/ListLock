@@ -46,6 +46,8 @@ import com.spotify.sdk.android.player.ConnectionStateCallback;
 import com.spotify.sdk.android.player.Spotify;
 import com.spotify.sdk.android.player.SpotifyPlayer;
 
+import java.util.concurrent.CountDownLatch;
+
 public class ListLockActivity extends AppCompatActivity implements ConnectionStateCallback {
 
     private static final int REQUEST_CODE = 8038;
@@ -54,6 +56,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
     private static boolean adminMode = false;
 
     private LinearLayout adminModeBanner;
+    private CountDownLatch playerLoggedInSignal;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +67,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         setSupportActionBar(customToolbar);
 
         adminModeBanner = (LinearLayout) findViewById(R.id.admin_mode_banner);
+        playerLoggedInSignal = new CountDownLatch(1);
 
         LogW.turnOn();
 
@@ -123,12 +127,13 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                 // Auth flow returned an error
                 case ERROR:
                     Utils.showTextBriefly(getString(R.string.login_fail), ListLockActivity.this);
-                    LogW.e(LOG_TAG, response.getError());
+                    LogW.e(LOG_TAG, response.getError() != null ? response.getError() : "no error message provided");
                     break;
 
                 // Most likely auth flow was cancelled
                 case EMPTY:
                     Utils.showTextBriefly(getString(R.string.login_cancel), ListLockActivity.this);
+                    break;
 
                 default:
                     Utils.showTextBriefly(getString(R.string.login_fail), ListLockActivity.this);
@@ -156,8 +161,9 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         }
     }
 
-    private void onTokensReceived(TokenSet tokens) {
+    private void onTokensReceived(final TokenSet tokens) {
         final String accessToken = tokens.getAccessToken();
+
         if (MusicService.player() == null) {
             Config playerConfig = new Config(getApplicationContext(), accessToken, Constants.CLIENT_ID);
             // Since the Player is a static singleton owned by the Spotify class, we pass "this" as
@@ -170,7 +176,6 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                 public void onInitialized(SpotifyPlayer player) {
                     LogW.d(LOG_TAG, "player initialized");
                     player.addConnectionStateCallback(ListLockActivity.this);
-                    // Trigger UI refresh
                 }
 
                 @Override
@@ -183,19 +188,28 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         }
 
         initUserInfo(tokens);
-        updateViews();
     }
 
     private void initUserInfo(TokenSet tokens) {
+        LogW.d(LOG_TAG, "initializing UserInfo");
         try {
             UserInfo.init(tokens);
         } catch (SpotifyWebRequestException e) {
             LogW.e(LOG_TAG, "failed to retrieve UserInfo", e);
             Utils.showTextProlonged(getString(R.string.user_info_fail), ListLockActivity.this);
         }
+
+        try {
+            LogW.d(LOG_TAG, "waiting for player te be logged in before update views");
+            playerLoggedInSignal.await();
+            updateViews();
+        } catch (InterruptedException e) {
+            LogW.d(LOG_TAG, "CountDownLatch interrupted");
+        }
     }
 
     private void updateViews() {
+        LogW.d(LOG_TAG, "updating views");
         final boolean loggedIn = isLoggedIn();
 
         final TextView logInText = (TextView) findViewById(R.id.log_in_text);
@@ -334,13 +348,15 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
     @Override
     public void onLoggedIn() {
         LogW.d(LOG_TAG, "user logged in");
-        updateViews();
+        playerLoggedInSignal.countDown();
+        AccessTokenUpdater.start();
     }
 
     @Override
     public void onLoggedOut() {
         LogW.d(LOG_TAG, "user logged out");
-        updateViews();
+        playerLoggedInSignal = new CountDownLatch(1);
+        AccessTokenUpdater.stop();
     }
 
     @Override

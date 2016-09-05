@@ -139,23 +139,26 @@ public class Utils {
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
     }
-    
-    public static void doWhileLoading(final Action action, final Context context) {
-        doWhileLoading(action, context, context.getString(R.string.loading));
-    }
 
-    public static void doWhileLoading(final Action action, final Context context, String loadingText) {
+    public static void doWhileLoading(final Action action, final Action onFinished, final Context context) {
         final ProgressDialog dialog = new ProgressDialog(context);
         dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        dialog.setMessage(loadingText);
+        dialog.setMessage(context.getString(R.string.loading));
         dialog.show();
 
         new Thread(new Runnable() {
             @Override
             public void run() {
                 action.execute();
+                if (onFinished != null) {
+                    onFinished.execute();
+                }
                 dialog.dismiss();
             }
         }).start();
+    }
+
+    public static void doWhileLoading(final Action action, final Context context) {
+        doWhileLoading(action, null, context);
     }
 }
