@@ -139,14 +139,11 @@ public class PlayActivity extends AppCompatActivity {
                 musicBound = false;
             }
         };
-
-        timer = new MusicTimer();
     }
 
     private class MusicTimer extends Timer {
-        @Override
-        public void schedule(TimerTask task, long delay, long period) {
-            super.schedule(new TimerTask() {
+        public MusicTimer() {
+            schedule(new TimerTask() {
                 @Override
                 public void run() {
                     PlaybackState playbackState = MusicService.player().getPlaybackState();
