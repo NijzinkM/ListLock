@@ -16,6 +16,7 @@ import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
+import android.text.method.LinkMovementMethod;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -75,7 +76,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
         updateViews();
 
-        if (SavedPreferences.getRefreshToken(ListLockActivity.this) != null) {
+        if (SavedPreferences.getRefreshToken(ListLockActivity.this) != null && !isLoggedIn()) {
             LogW.d(LOG_TAG, "refresh token found");
             try {
                 final TokenSet tokens = SpotifyWebRequest.refreshAccessToken(SavedPreferences.getRefreshToken(ListLockActivity.this));
@@ -558,6 +559,12 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                         alertDialog.show();
                     }
                 }, adminModeBanner, true);
+                break;
+            case R.id.action_info:
+                AlertDialog appInfoDialog = new AppInfoDialog(ListLockActivity.this);
+                appInfoDialog.show();
+                // Make links clickable
+                ((TextView)appInfoDialog.findViewById(android.R.id.message)).setMovementMethod(LinkMovementMethod.getInstance());
                 break;
             default:
                 break;
