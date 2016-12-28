@@ -9,10 +9,13 @@ import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.support.v4.media.MediaBrowserCompat;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.method.PasswordTransformationMethod;
+import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
@@ -21,6 +24,9 @@ import android.widget.Toast;
 
 import com.mart.listlock.R;
 import com.mart.listlock.listlockactivity.ListLockActivity;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 
 public class Utils {
 
@@ -123,6 +129,11 @@ public class Utils {
             }
         });
         builder.create().show();
+    }
+
+    public static String decodeSecretKey(String clientID, String clientSecret) {
+        String decoded = Base64.encodeToString((clientID + ":" + clientSecret).getBytes(Charset.forName("UTF-8")), Base64.NO_WRAP);
+        return decoded;
     }
 
     public static abstract class Action {

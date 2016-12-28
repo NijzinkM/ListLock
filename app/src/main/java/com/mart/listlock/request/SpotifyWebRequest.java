@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 
 import com.mart.listlock.common.Constants;
 import com.mart.listlock.common.LogW;
+import com.mart.listlock.common.Utils;
 import com.mart.listlock.playactivity.spotifyobjects.AlbumInfo;
 import com.mart.listlock.playactivity.spotifyobjects.ArtistInfo;
 import com.mart.listlock.playactivity.spotifyobjects.PlaylistInfo;
@@ -72,8 +73,11 @@ public class SpotifyWebRequest {
 
         final String url = BASE_URL + "/me";
 
+        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.GET);
+        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Bearer " + accessToken));
+
         try {
-            responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.GET, accessToken).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
+            responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
@@ -130,8 +134,11 @@ public class SpotifyWebRequest {
 
         final String url = BASE_URL + "/tracks/" + uri.substring(TRACK_PREFIX.length());
 
+        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.GET);
+        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Bearer " + accessToken));
+
         try {
-            responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.GET, accessToken).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
+            responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
@@ -165,8 +172,11 @@ public class SpotifyWebRequest {
 
         final String url = BASE_URL + "/albums/" + uri.substring(ALBUM_PREFIX.length());
 
+        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.GET);
+        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Bearer " + accessToken));
+
         try {
-            responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.GET, accessToken).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
+            responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
@@ -200,8 +210,11 @@ public class SpotifyWebRequest {
 
         final String url = BASE_URL + "/artists/" + uri.substring(ARTIST_PREFIX.length());
 
+        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.GET);
+        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Bearer " + accessToken));
+
         try {
-            responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.GET, accessToken).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
+            responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
@@ -241,8 +254,11 @@ public class SpotifyWebRequest {
         final int limit = 15;
         final String url = BASE_URL + "/search?q=" + keyword.replace(" ", "%20") + "&type=track&market=" + UserInfo.getCountry() + "&limit=" + limit + "&offset=" + limit * page;
 
+        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.GET);
+        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Bearer " + accessToken));
+
         try {
-            responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.GET, accessToken).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
+            responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
@@ -281,8 +297,11 @@ public class SpotifyWebRequest {
 
         final String url = BASE_URL + "/me/playlists";
 
+        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.GET);
+        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Bearer " + accessToken));
+
         try {
-            responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.GET, accessToken).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
+            responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
@@ -315,8 +334,11 @@ public class SpotifyWebRequest {
 
         final String url = BASE_URL + "/users/" + UserInfo.getId() + "/playlists/" + id;
 
+        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.GET);
+        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Bearer " + accessToken));
+
         try {
-            responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.GET, accessToken).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
+            responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
@@ -349,10 +371,15 @@ public class SpotifyWebRequest {
             }
         };
 
-        final String url = ACCOUNT_URL + "?grant_type=authorization_code&redirect_uri=" + Constants.REDIRECT_URI.replace("/", "%2F") + "&code=" + code + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
+        final String url = ACCOUNT_URL + "?grant_type=authorization_code&redirect_uri=" + Constants.REDIRECT_URI.replace("/", "%2F") + "&code=" + code;
+//        final String url = ACCOUNT_URL + "?grant_type=authorization_code&redirect_uri=" + Constants.REDIRECT_URI.replace("/", "%2F") + "&code=" + code + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
+
+        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.POST);
+        String decoded = Utils.decodeSecretKey(Constants.CLIENT_ID, Constants.CLIENT_SECRET);
+        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Basic " + decoded));
 
         try {
-            responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.POST).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
+            responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
@@ -385,10 +412,15 @@ public class SpotifyWebRequest {
             }
         };
 
-        final String url = ACCOUNT_URL + "?grant_type=refresh_token&refresh_token=" + refreshToken + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
+        final String url = ACCOUNT_URL + "?grant_type=refresh_token&refresh_token=" + refreshToken;
+//        final String url = ACCOUNT_URL + "?grant_type=refresh_token&refresh_token=" + refreshToken + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
+
+        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.POST);
+        String decoded = Utils.decodeSecretKey(Constants.CLIENT_ID, Constants.CLIENT_SECRET);
+        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Basic " + decoded));
 
         try {
-            responseHandler.handleResponse(new RetrieveHTTPSResponse(url, RequestMethod.POST).execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
+            responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
@@ -460,17 +492,13 @@ public class SpotifyWebRequest {
         private String urlText;
         private RequestMethod method;
         private String accessToken;
+        private List<Header> headers;
 
         public RetrieveHTTPSResponse(String urlText, RequestMethod method) {
             this.urlText = urlText;
             this.method = method;
             this.accessToken = null;
-        }
-
-        public RetrieveHTTPSResponse(String urlText, RequestMethod method, String accessToken) {
-            this.urlText = urlText;
-            this.method = method;
-            this.accessToken = accessToken;
+            this.headers = new ArrayList<>();
         }
 
         @Override
@@ -486,10 +514,15 @@ public class SpotifyWebRequest {
                 }
 
                 if (accessToken != null) {
-                    con.setRequestProperty("Authorization", "Bearer " + accessToken);
+                    con.setRequestProperty(Header.AUTHORIZATION, "Bearer " + accessToken);
+                }
+
+                for (Header header : headers) {
+                    con.setRequestProperty(header.getParam(), header.getValue());
                 }
 
                 con.setRequestProperty("User-Agent", USER_AGENT);
+                con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
 
                 LogW.d(LOG_TAG, "sending " + con.getRequestMethod() + " request to URL: " + urlText);
 
@@ -517,6 +550,46 @@ public class SpotifyWebRequest {
             }
 
             return response;
+        }
+
+        public List<Header> getHeaders() {
+            return headers;
+        }
+
+        public void setHeaders(List<Header> headers) {
+            this.headers = headers;
+        }
+
+        public void addHeader(Header header) {
+            headers.add(header);
+        }
+    }
+
+    private static class Header {
+        public static final String AUTHORIZATION = "Authorization";
+
+        private String param;
+        private String value;
+
+        public Header(String param, String value) {
+            this.param = param;
+            this.value = value;
+        }
+
+        public String getParam() {
+            return param;
+        }
+
+        public void setParam(String param) {
+            this.param = param;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
         }
     }
 }

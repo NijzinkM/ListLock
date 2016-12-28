@@ -17,4 +17,9 @@ public abstract class DefaultGETResponseHandler extends GETResponseHandler {
     protected void handle404(HTTPResponse response) {
         setException(new SpotifyWebRequestException(response.getHTTPStatusCode()));
     }
+
+    @Override
+    protected void handle405(HTTPResponse response) {
+        setException(new SpotifyWebRequestException(response.getHTTPStatusCode()));
+    }
 }

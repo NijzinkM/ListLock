@@ -30,6 +30,8 @@ public abstract class GETResponseHandler {
             case 404:
                 handle404(response);
                 break;
+            case 405:
+                handle405(response);
         }
 
         if (e != null)
@@ -43,6 +45,8 @@ public abstract class GETResponseHandler {
     protected abstract void handle401(HTTPResponse response);
 
     protected abstract void handle404(HTTPResponse response);
+
+    protected abstract void handle405(HTTPResponse response);
 
     protected void setException(SpotifyWebRequestException e) {
         this.e = e;
