@@ -131,7 +131,7 @@ public class Utils {
         builder.create().show();
     }
 
-    public static String decodeSecretKey(String clientID, String clientSecret) {
+    public static String base64Encode(String clientID, String clientSecret) {
         String decoded = Base64.encodeToString((clientID + ":" + clientSecret).getBytes(Charset.forName("UTF-8")), Base64.NO_WRAP);
         return decoded;
     }

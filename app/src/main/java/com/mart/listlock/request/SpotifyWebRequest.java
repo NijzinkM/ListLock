@@ -3,6 +3,7 @@ package com.mart.listlock.request;
 import android.os.AsyncTask;
 
 import com.mart.listlock.common.Constants;
+import com.mart.listlock.common.Decoder;
 import com.mart.listlock.common.LogW;
 import com.mart.listlock.common.Utils;
 import com.mart.listlock.playactivity.spotifyobjects.AlbumInfo;
@@ -374,13 +375,13 @@ public class SpotifyWebRequest {
         final String url = ACCOUNT_URL + "?grant_type=authorization_code&redirect_uri=" + Constants.REDIRECT_URI.replace("/", "%2F") + "&code=" + code;
 //        final String url = ACCOUNT_URL + "?grant_type=authorization_code&redirect_uri=" + Constants.REDIRECT_URI.replace("/", "%2F") + "&code=" + code + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
 
-        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.POST);
-        String decoded = Utils.decodeSecretKey(Constants.CLIENT_ID, Constants.CLIENT_SECRET);
-        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Basic " + decoded));
 
         try {
+            RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.POST);
+            String decoded = Utils.base64Encode(Constants.CLIENT_ID, new Decoder().decode(Constants.CLIENT_SECRET));
+            responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Basic " + decoded));
             responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
-        } catch (InterruptedException | TimeoutException | ExecutionException e) {
+        } catch (Exception e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
         }
@@ -415,13 +416,12 @@ public class SpotifyWebRequest {
         final String url = ACCOUNT_URL + "?grant_type=refresh_token&refresh_token=" + refreshToken;
 //        final String url = ACCOUNT_URL + "?grant_type=refresh_token&refresh_token=" + refreshToken + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
 
-        RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.POST);
-        String decoded = Utils.decodeSecretKey(Constants.CLIENT_ID, Constants.CLIENT_SECRET);
-        responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Basic " + decoded));
-
         try {
+            RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.POST);
+            String decoded = Utils.base64Encode(Constants.CLIENT_ID, new Decoder().decode(Constants.CLIENT_SECRET));
+            responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Basic " + decoded));
             responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
-        } catch (InterruptedException | TimeoutException | ExecutionException e) {
+        } catch (Exception e) {
             LogW.d(LOG_TAG, "unable to handle response from URL: " + url);
             throw new SpotifyWebRequestException(e);
         }
