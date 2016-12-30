@@ -24,6 +24,10 @@ android {
     }
 }
 
+release {
+    failOnUnversionedFiles false
+}
+
 repositories {
     mavenCentral()
     flatDir {
