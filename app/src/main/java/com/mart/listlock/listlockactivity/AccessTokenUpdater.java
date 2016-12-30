@@ -35,7 +35,9 @@ public class AccessTokenUpdater {
 
     public static void stop() {
         LogW.d(LOG_TAG, "access token updater stopped");
-        handle.cancel(false);
+        if (handle != null) {
+            handle.cancel(false);
+        }
         started = false;
     }
 
