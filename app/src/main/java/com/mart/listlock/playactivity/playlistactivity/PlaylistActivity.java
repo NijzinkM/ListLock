@@ -91,16 +91,4 @@ public class PlaylistActivity extends AppCompatActivity {
         }
     }
 
-//    @Override
-//    public boolean onTouchEvent(MotionEvent event) {
-//        LogW.d(LOG_TAG, event.toString());
-//        // finish activity when clicked outside border
-//        if (MotionEvent.ACTION_OUTSIDE == event.getAction()) {
-//            finish();
-//            return true;
-//        }
-//
-//        // delegate everything else to this activity
-//        return super.onTouchEvent(event);
-//    }
 }
