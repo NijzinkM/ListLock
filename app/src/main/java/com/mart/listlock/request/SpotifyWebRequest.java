@@ -373,12 +373,12 @@ public class SpotifyWebRequest {
         };
 
         final String url = ACCOUNT_URL + "?grant_type=authorization_code&redirect_uri=" + Constants.REDIRECT_URI.replace("/", "%2F") + "&code=" + code;
-//        final String url = ACCOUNT_URL + "?grant_type=authorization_code&redirect_uri=" + Constants.REDIRECT_URI.replace("/", "%2F") + "&code=" + code + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
+//        final String url = ACCOUNT_URL + "?grant_type=authorization_code&redirect_uri=" + Constants.REDIRECT_URI.replace("/", "%2F") + "&code=" + code + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET_ENCODED;
 
 
         try {
             RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.POST);
-            String decoded = Utils.base64Encode(Constants.CLIENT_ID, new Decoder().decode(Constants.CLIENT_SECRET));
+            String decoded = Utils.base64Encode(Constants.CLIENT_ID, new Decoder().decode(Constants.CLIENT_SECRET_ENCODED));
             responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Basic " + decoded));
             responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (Exception e) {
@@ -414,11 +414,11 @@ public class SpotifyWebRequest {
         };
 
         final String url = ACCOUNT_URL + "?grant_type=refresh_token&refresh_token=" + refreshToken;
-//        final String url = ACCOUNT_URL + "?grant_type=refresh_token&refresh_token=" + refreshToken + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET;
+//        final String url = ACCOUNT_URL + "?grant_type=refresh_token&refresh_token=" + refreshToken + "&client_id=" + Constants.CLIENT_ID + "&client_secret=" + Constants.CLIENT_SECRET_ENCODED;
 
         try {
             RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.POST);
-            String decoded = Utils.base64Encode(Constants.CLIENT_ID, new Decoder().decode(Constants.CLIENT_SECRET));
+            String decoded = Utils.base64Encode(Constants.CLIENT_ID, new Decoder().decode(Constants.CLIENT_SECRET_ENCODED));
             responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Basic " + decoded));
             responseHandler.handleResponse(responseRetriever.execute().get(REQUEST_TIME_OUT, TimeUnit.MILLISECONDS));
         } catch (Exception e) {
