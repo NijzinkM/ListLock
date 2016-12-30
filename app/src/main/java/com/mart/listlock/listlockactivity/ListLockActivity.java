@@ -58,6 +58,9 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
     private LinearLayout adminModeBanner;
     private CountDownLatch playerLoggedInSignal;
+    private AlertDialog pinDialog;
+    private AlertDialog newPinDialog;
+    private AlertDialog appInfoDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -411,7 +414,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                 LogW.d(LOG_TAG, getString(R.string.action_log_out) + " clicked");
 
                 if (isLoggedIn()) {
-                    Utils.doWhenAuthorized(this, new Utils.Action() {
+                    pinDialog = Utils.doWhenAuthorized(this, new Utils.Action() {
                         @Override
                         public void execute() {
                             if (MusicService.player() != null) {
@@ -427,7 +430,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                 break;
             case R.id.action_pin:
                 LogW.d(LOG_TAG, getString(R.string.action_pin) + " clicked");
-                Utils.doWhenAuthorized(this, new Utils.Action() {
+                pinDialog = Utils.doWhenAuthorized(this, new Utils.Action() {
                     @Override
                     public void execute() {
                         AlertDialog.Builder builder = new AlertDialog.Builder(ListLockActivity.this);
@@ -453,14 +456,14 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
                         builder.setView(input);
 
-                        final AlertDialog alertDialog = builder.create();
+                        newPinDialog = builder.create();
 
-                        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+                        newPinDialog.setOnShowListener(new DialogInterface.OnShowListener() {
 
                             @Override
                             public void onShow(DialogInterface dialog) {
 
-                                Button b = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                                Button b = newPinDialog.getButton(AlertDialog.BUTTON_POSITIVE);
                                 b.setOnClickListener(new View.OnClickListener() {
 
                                     @Override
@@ -475,7 +478,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                                             SharedPreferences.Editor editor = settings.edit();
                                             editor.putString(Utils.KEY_PIN, input.getText().toString());
                                             editor.commit();
-                                            alertDialog.dismiss();
+                                            newPinDialog.dismiss();
 
                                             Utils.showTextBriefly(getString(R.string.new_pin_set), ListLockActivity.this);
                                         }
@@ -484,12 +487,12 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                             }
                         });
 
-                        alertDialog.show();
+                        newPinDialog.show();
                     }
                 }, adminModeBanner, true);
                 break;
             case R.id.action_info:
-                AlertDialog appInfoDialog = new AppInfoDialog(ListLockActivity.this);
+                appInfoDialog = new AppInfoDialog(ListLockActivity.this);
                 appInfoDialog.show();
                 // Make links clickable
                 ((TextView)appInfoDialog.findViewById(android.R.id.message)).setMovementMethod(LinkMovementMethod.getInstance());
@@ -516,6 +519,15 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
     @Override
     protected void onDestroy() {
         LogW.d(LOG_TAG, "destroyed");
+
+        if (pinDialog != null && pinDialog.isShowing()) {
+            pinDialog.dismiss();
+        }
+
+        if (appInfoDialog != null && appInfoDialog.isShowing()) {
+            appInfoDialog.dismiss();
+        }
+
         super.onDestroy();
     }
 

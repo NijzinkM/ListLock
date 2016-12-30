@@ -53,10 +53,12 @@ public class Utils {
         });
     }
 
-    public static void doWhenAuthorized(final Activity activity, final Action onCorrect, final LinearLayout adminModeBanner, final boolean forcePIN) {
+    // Shows and returns dialog is not authorized or returns null if authorized
+    public static AlertDialog doWhenAuthorized(final Activity activity, final Action onCorrect, final LinearLayout adminModeBanner, final boolean forcePIN) {
         if (ListLockActivity.inAdminMode() && forcePIN == false) {
             LogW.d(LOG_TAG, "in admin mode, executing Action");
             onCorrect.execute();
+            return null;
         } else {
             LogW.d(LOG_TAG, forcePIN ? "forcePIN is true; asking for PIN" : "not in admin mode; asking for PIN");
             AlertDialog.Builder builder = new AlertDialog.Builder(activity);
@@ -104,6 +106,7 @@ public class Utils {
             dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
 
             dialog.show();
+            return dialog;
         }
     }
 
