@@ -58,6 +58,8 @@ public class PlayActivity extends AppCompatActivity {
     private IntentFilter intentFilter;
     private Typeface fontAwesome;
     private LinearLayout adminModeBanner;
+    private AlertDialog pinDialog;
+    private AlertDialog removeSongDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -260,7 +262,7 @@ public class PlayActivity extends AppCompatActivity {
     public void onClickAddPlaylist(View view) {
         LogW.d(LOG_TAG, "view to add playlist clicked");
 
-        Utils.doWhenAuthorized(this, new Utils.Action() {
+        pinDialog = Utils.doWhenAuthorized(this, new Utils.Action() {
             @Override
             public void execute() {
                 Intent intent = new Intent(PlayActivity.this, PlaylistActivity.class);
@@ -271,7 +273,7 @@ public class PlayActivity extends AppCompatActivity {
 
     public void onClickNext(View view) {
         LogW.d(LOG_TAG, "view to skip clicked");
-        Utils.doWhenAuthorized(this, new Utils.Action() {
+        pinDialog = Utils.doWhenAuthorized(this, new Utils.Action() {
             @Override
             public void execute() {
                 try {
@@ -319,13 +321,13 @@ public class PlayActivity extends AppCompatActivity {
         final SongInfoRow row = (SongInfoRow) view;
         final String title = row.getSongInfo().getName();
 
-        new AlertDialog.Builder(this)
+        removeSongDialog = new AlertDialog.Builder(this)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setMessage(getString(R.string.delete_song_conformation, title))
                 .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Utils.doWhenAuthorized(PlayActivity.this, new Utils.Action() {
+                        pinDialog = Utils.doWhenAuthorized(PlayActivity.this, new Utils.Action() {
                             @Override
                             public void execute() {
                                 try {
@@ -345,7 +347,8 @@ public class PlayActivity extends AppCompatActivity {
                     }
                 })
                 .setNegativeButton(getString(R.string.no), null)
-                .show();
+                .create();
+        removeSongDialog.show();
     }
 
     public void onClickAdminModeBanner(View view) {
@@ -381,6 +384,15 @@ public class PlayActivity extends AppCompatActivity {
     protected void onDestroy() {
         LogW.d(LOG_TAG, "destroyed");
         unbindService(musicConnection);
+
+        if (pinDialog != null && pinDialog.isShowing()) {
+            pinDialog.dismiss();
+        }
+
+        if (removeSongDialog != null && removeSongDialog.isShowing()) {
+            removeSongDialog.dismiss();
+        }
+
         super.onDestroy();
     }
 }
