@@ -9,13 +9,14 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
-import android.util.Log;
+import android.text.method.LinkMovementMethod;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -25,40 +26,44 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.mart.listlock.R;
 import com.mart.listlock.common.Constants;
 import com.mart.listlock.common.LogW;
+import com.mart.listlock.common.SavedPreferences;
 import com.mart.listlock.common.UserInfo;
-import com.mart.listlock.request.DownloadService;
-import com.mart.listlock.R;
 import com.mart.listlock.common.Utils;
 import com.mart.listlock.playactivity.MusicService;
 import com.mart.listlock.playactivity.PlayActivity;
 import com.mart.listlock.request.DownloadReceiver;
+import com.mart.listlock.request.DownloadService;
+import com.mart.listlock.request.SpotifyWebRequest;
 import com.mart.listlock.request.SpotifyWebRequestException;
+import com.mart.listlock.request.TokenSet;
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
 import com.spotify.sdk.android.authentication.AuthenticationResponse;
 import com.spotify.sdk.android.player.Config;
 import com.spotify.sdk.android.player.ConnectionStateCallback;
-import com.spotify.sdk.android.player.Player;
 import com.spotify.sdk.android.player.Spotify;
+import com.spotify.sdk.android.player.SpotifyPlayer;
 
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
 
 public class ListLockActivity extends AppCompatActivity implements ConnectionStateCallback {
-
-    private static final String KEY_ACCESS_TOKEN = "accesstoken";
 
     private static final int REQUEST_CODE = 8038;
     private static final String LOG_TAG = ListLockActivity.class.getName();
 
-    private static boolean loggedIn = false;
     private static boolean adminMode = false;
 
     private LinearLayout adminModeBanner;
+    private CountDownLatch playerLoggedInSignal;
+    private AlertDialog pinDialog;
+    private AlertDialog newPinDialog;
+    private AlertDialog appInfoDialog;
 
     @Override
-     protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_listlock);
 
@@ -66,16 +71,28 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         setSupportActionBar(customToolbar);
 
         adminModeBanner = (LinearLayout) findViewById(R.id.admin_mode_banner);
+        playerLoggedInSignal = new CountDownLatch(1);
 
         LogW.turnOn();
 
         LogW.d(LOG_TAG, "created with" + (savedInstanceState == null ? "out" : "") + " saved bundle");
 
-        if (!loggedIn) {
-            if (!Utils.isNetworkAvailable(this)) {
-                Utils.showTextBriefly(getString(R.string.no_internet), this);
-            } else {
-                AuthenticationClient.openLoginActivity(this, REQUEST_CODE, getDefaultRequest(true));
+        updateViews();
+
+        if (SavedPreferences.getRefreshToken(ListLockActivity.this) != null && !isLoggedIn()) {
+            LogW.d(LOG_TAG, "refresh token found");
+            try {
+                final TokenSet tokens = SpotifyWebRequest.refreshAccessToken(SavedPreferences.getRefreshToken(ListLockActivity.this));
+                LogW.d(LOG_TAG, "access token refreshed");
+                Utils.doWhileLoading(new Utils.Action() {
+                    @Override
+                    public void execute() {
+                        onTokensReceived(tokens);
+                    }
+                }, ListLockActivity.this);
+            } catch (SpotifyWebRequestException e) {
+                LogW.e(LOG_TAG, "failed to refresh access token", e);
+                Utils.showTextBriefly(getString(R.string.auto_login_failed), ListLockActivity.this);
             }
         }
     }
@@ -85,52 +102,9 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         super.onResume();
         LogW.d(LOG_TAG, "resumed");
 
-        Utils.setAuthorized(ListLockActivity.inAdminMode(), adminModeBanner);
-
-        SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-
-        final String savedAccessToken = settings.getString(KEY_ACCESS_TOKEN, null);
-
-
-        final String currentAccessToken = UserInfo.getAccessToken();
-        if (currentAccessToken == null) {
-            LogW.d(LOG_TAG, "current access token is null");
-            if (savedAccessToken == null) {
-                LogW.d(LOG_TAG, "no saved access token");
-                setLoggedIn(false);
-                return;
-            } else {
-                LogW.d(LOG_TAG, "saved access token restored");
-                Utils.doWhileLoading(new Utils.Action() {
-                    @Override
-                    public void execute() {
-                        try {
-                            UserInfo.init(savedAccessToken);
-
-                            LogW.d(LOG_TAG, "access token=" + savedAccessToken);
-
-                            if (MusicService.player() == null) {
-                                initPlayer(currentAccessToken, UserInfo.getDisplayName());
-                            }
-                        } catch (SpotifyWebRequestException e) {
-                            LogW.e(LOG_TAG, "failed to restore user session", e);
-                            Utils.showTextBriefly(getString(R.string.auto_login_failed), ListLockActivity.this);
-                        }
-                    }
-                }, this);
-            }
+        if (inAdminMode()) {
+            Utils.setAuthorized(adminModeBanner);
         }
-
-        setLoggedIn(true);
-    }
-
-    private AuthenticationRequest getDefaultRequest(boolean showDialog) {
-        AuthenticationRequest.Builder builder =
-                new AuthenticationRequest.Builder(Constants.CLIENT_ID, AuthenticationResponse.Type.TOKEN, Constants.REDIRECT_URI);
-
-        builder.setScopes(new String[]{"playlist-read", "playlist-read-private", "streaming"});
-        builder.setShowDialog(showDialog);
-        return builder.build();
     }
 
     @Override
@@ -140,139 +114,112 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         // Check if result comes from the correct activity
         if (requestCode == REQUEST_CODE) {
             final AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, intent);
-            switch(response.getType()) {
-                case TOKEN:
-                    Utils.showTextBriefly(getString(R.string.login_success), getApplicationContext());
+            final AuthenticationResponse.Type type = response.getType();
+            LogW.d(LOG_TAG, "login activity response type: " + type);
+            switch (type) {
+                // Response was successful and contains auth token
+                case CODE:
+                    Utils.showTextBriefly(getString(R.string.login_success), ListLockActivity.this);
                     Utils.doWhileLoading(new Utils.Action() {
                         @Override
                         public void execute() {
-                            try {
-                                UserInfo.init(response.getAccessToken());
-                                initPlayer(response.getAccessToken(), UserInfo.getDisplayName());
-
-                                if (UserInfo.getDisplayName() == null || UserInfo.getDisplayName().isEmpty()) {
-                                    throw new SpotifyWebRequestException("no user info");
-                                }
-
-                                setLoggedIn(true);
-                            } catch (SpotifyWebRequestException e) {
-                                UserInfo.setDisplayName("unknown");
-                                Utils.showTextProlonged(getString(R.string.user_info_fail), ListLockActivity.this);
-                                LogW.e(LOG_TAG, "failed to retrieve UserInfo; UserInfo set to default values", e);
-                            }
+                            onCodeReceived(response);
                         }
-                    }, this, getString(R.string.init_spotify_player));
+                    }, ListLockActivity.this);
                     break;
+
+                // Auth flow returned an error
                 case ERROR:
-                    Utils.showTextBriefly(getString(R.string.login_fail), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.login_fail), ListLockActivity.this);
+                    LogW.e(LOG_TAG, response.getError() != null ? response.getError() : "no error message provided");
                     break;
+
+                // Most likely auth flow was cancelled
                 case EMPTY:
-                    Utils.showTextBriefly(getString(R.string.login_cancel), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.login_cancel), ListLockActivity.this);
                     break;
+
                 default:
-                    Utils.showTextBriefly(getString(R.string.login_fail), getApplicationContext());
-                    break;
+                    Utils.showTextBriefly(getString(R.string.login_fail), ListLockActivity.this);
             }
         }
     }
 
-    private void initPlayer(String accessToken, String displayName) {
-        Config playerConfig = new Config(this, accessToken, Constants.CLIENT_ID);
+    private void onCodeReceived(AuthenticationResponse authResponse) {
+        // Once we have obtained an authorization code, we can request the auth and refresh token
+        LogW.d(LOG_TAG, "authentication code received");
 
-        LogW.d(LOG_TAG, "initializing player for username: " + displayName);
+        final String code = authResponse.getCode();
 
-        if (MusicService.player() != null) {
-            Spotify.destroyPlayer(this);
-            try {
-                MusicService.player().awaitTermination(10, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                LogW.d(LOG_TAG, Log.getStackTraceString(e));
-                Utils.showTextProlonged(getString(R.string.player_terminate_fail), getApplicationContext());
-            }
+        try {
+            final TokenSet tokens = SpotifyWebRequest.requestTokens(code);
+            LogW.d(LOG_TAG, "tokens received");
+
+            SavedPreferences.setAccessToken(ListLockActivity.this, tokens.getAccessToken());
+            SavedPreferences.setRefreshToken(ListLockActivity.this, tokens.getRefreshToken());
+
+            onTokensReceived(tokens);
+        } catch (SpotifyWebRequestException e) {
+            LogW.e(LOG_TAG, "auth request failed", e);
+            Utils.showTextBriefly(getString(R.string.login_fail), ListLockActivity.this);
         }
+    }
 
-        MusicService.setPlayer(Spotify.getPlayer(playerConfig, MusicService.class, new Player.InitializationObserver() {
-            @Override
-            public void onInitialized(Player player) {
-                MusicService.player().addConnectionStateCallback(ListLockActivity.this);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                LogW.e(LOG_TAG, "could not initialize player: " + t.getMessage(), t);
-                Utils.showTextBriefly(getString(R.string.login_fail), getApplicationContext());
-            }
-        }));
+    private void onTokensReceived(final TokenSet tokens) {
+        final String accessToken = tokens.getAccessToken();
 
         if (MusicService.player() == null) {
-            AuthenticationClient.clearCookies(this);
-            AuthenticationClient.openLoginActivity(this, REQUEST_CODE, getDefaultRequest(true));
+            Config playerConfig = new Config(getApplicationContext(), accessToken, Constants.CLIENT_ID);
+            // Since the Player is a static singleton owned by the Spotify class, we pass "this" as
+            // the second argument in order to refcount it properly. Note that the method
+            // Spotify.destroyPlayer() also takes an Object argument, which must be the same as the
+            // one passed in here. If you pass different instances to Spotify.getPlayer() and
+            // Spotify.destroyPlayer(), that will definitely result in resource leaks.
+            MusicService.setPlayer(Spotify.getPlayer(playerConfig, this, new SpotifyPlayer.InitializationObserver() {
+                @Override
+                public void onInitialized(SpotifyPlayer player) {
+                    LogW.d(LOG_TAG, "player initialized");
+                    player.addConnectionStateCallback(ListLockActivity.this);
+                }
 
-            setLoggedIn(false);
-        }
-
-    }
-
-    @Override
-    public void onTemporaryError() {
-        LogW.d(LOG_TAG, "temporary error occurred");
-    }
-
-    @Override
-    public void onConnectionMessage(String message) {
-        LogW.d(LOG_TAG, "received connection message: " + message);
-    }
-
-    @Override
-    public void onLoggedIn() {
-        LogW.d(LOG_TAG, "user logged in");
-    }
-
-    @Override
-    public void onLoggedOut() {
-        LogW.d(LOG_TAG, "user logged out");
-    }
-
-    @Override
-    public void onLoginFailed(Throwable error) {
-        LogW.d(LOG_TAG, "login failed");
-        LogW.e(LOG_TAG, "stacktrace: " + Log.getStackTraceString(error));
-    }
-
-    public void onClickLogin(View view) {
-        LogW.d(LOG_TAG, "view to log in clicked");
-        if (!Utils.isNetworkAvailable(this)) {
-            Utils.showTextBriefly(getString(R.string.no_internet), this);
+                @Override
+                public void onError(Throwable error) {
+                    LogW.e(LOG_TAG, "error in initialization: " + error.getMessage());
+                }
+            }));
         } else {
-            AuthenticationClient.openLoginActivity(this, REQUEST_CODE, getDefaultRequest(true));
+            MusicService.player().login(accessToken);
+        }
+
+        initUserInfo(tokens);
+    }
+
+    private void initUserInfo(TokenSet tokens) {
+        LogW.d(LOG_TAG, "initializing UserInfo");
+        try {
+            UserInfo.init(tokens);
+        } catch (SpotifyWebRequestException e) {
+            LogW.e(LOG_TAG, "failed to retrieve UserInfo", e);
+            Utils.showTextProlonged(getString(R.string.user_info_fail), ListLockActivity.this);
+        }
+
+        try {
+            LogW.d(LOG_TAG, "waiting for player te be logged in before update views");
+            playerLoggedInSignal.await();
+            updateViews();
+        } catch (InterruptedException e) {
+            LogW.d(LOG_TAG, "CountDownLatch interrupted");
         }
     }
 
-    public void onClickStart(View view) {
-        LogW.d(LOG_TAG, "view to start clicked");
-        Intent intent = new Intent(this, PlayActivity.class);
-        startActivity(intent);
-    }
+    private void updateViews() {
+        LogW.d(LOG_TAG, "updating views");
+        final boolean loggedIn = isLoggedIn();
 
-    public void onClickAdminModeBanner(View view) {
-        LogW.d(LOG_TAG, "view to leave admin mode clicked");
-        Utils.setAuthorized(false, adminModeBanner);
-    }
-
-    private void swapButtons(boolean loggedIn) {
-        Button logInButton = (Button) findViewById(R.id.log_in_button);
-        logInButton.setVisibility(loggedIn ? View.GONE : View.VISIBLE);
-
-        Button startButton = (Button) findViewById(R.id.start_button);
-        startButton.setVisibility(loggedIn ? View.VISIBLE : View.GONE);
-    }
-
-    private void setLoggedIn(boolean in) {
-        LogW.d(LOG_TAG, "setting logged in to " + in);
         final TextView logInText = (TextView) findViewById(R.id.log_in_text);
         final ImageView profileImage = (ImageView) findViewById(R.id.profile_image);
 
-        if (in) {
+        if (loggedIn) {
             logInText.post(new Runnable() {
                 @Override
                 public void run() {
@@ -299,13 +246,87 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
             });
         }
 
-        swapButtons(in);
-        loggedIn = in;
+        swapButtons(loggedIn);
         invalidateOptionsMenu();
     }
 
+    public void onClickLogin(View view) {
+        LogW.d(LOG_TAG, "view to log in clicked");
+        if (!isLoggedIn()) {
+            openLoginWindow();
+        } else {
+            LogW.e(LOG_TAG, "login clicked while logged in; button should be hidden");
+        }
+    }
+
+    private void openLoginWindow() {
+        final AuthenticationRequest request = new AuthenticationRequest.Builder(Constants.CLIENT_ID, AuthenticationResponse.Type.CODE, Constants.REDIRECT_URI)
+                .setScopes(new String[]{"playlist-read", "playlist-read-private", "streaming"})
+                .build();
+
+        AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
+    }
+
+    @Override
+    public void onTemporaryError() {
+        LogW.d(LOG_TAG, "temporary error occurred");
+    }
+
+    @Override
+    public void onConnectionMessage(String message) {
+        LogW.d(LOG_TAG, "received connection message: " + message);
+    }
+
+    @Override
+    public void onLoggedIn() {
+        LogW.d(LOG_TAG, "user logged in");
+        playerLoggedInSignal.countDown();
+        AccessTokenUpdater.start();
+    }
+
+    @Override
+    public void onLoggedOut() {
+        LogW.d(LOG_TAG, "user logged out");
+        playerLoggedInSignal = new CountDownLatch(1);
+        AccessTokenUpdater.stop();
+    }
+
+    @Override
+    public void onLoginFailed(int i) {
+        LogW.e(LOG_TAG, "login error " + i);
+    }
+
+    public void onClickStart(View view) {
+        LogW.d(LOG_TAG, "view to start clicked");
+        Intent intent = new Intent(this, PlayActivity.class);
+        startActivity(intent);
+    }
+
+    public void onClickAdminModeBanner(View view) {
+        LogW.d(LOG_TAG, "view to leave admin mode clicked");
+        Utils.setUnauthorized(adminModeBanner, this);
+    }
+
+    private void swapButtons(final boolean loggedIn) {
+        final Button logInButton = (Button) findViewById(R.id.log_in_button);
+        logInButton.post(new Runnable() {
+            @Override
+            public void run() {
+                logInButton.setVisibility(loggedIn ? View.GONE : View.VISIBLE);
+            }
+        });
+
+        final Button startButton = (Button) findViewById(R.id.start_button);
+        startButton.post(new Runnable() {
+            @Override
+            public void run() {
+                startButton.setVisibility(loggedIn ? View.VISIBLE : View.GONE);
+            }
+        });
+    }
+
     private void downloadFileToImageView(final String url, final ImageView imageView) {
-        final DownloadReceiver mReceiver = new DownloadReceiver(new Handler());
+        final DownloadReceiver mReceiver = new DownloadReceiver(new Handler(Looper.getMainLooper()));
 
         final int requestId = 1234;
 
@@ -329,7 +350,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
                             if (data == null) {
                                 LogW.d(LOG_TAG, "downloader: data is null");
-                                Utils.showTextBriefly(getString(R.string.no_profile_image), getApplicationContext());
+                                Utils.showTextBriefly(getString(R.string.no_profile_image), ListLockActivity.this);
                                 imageView.setImageDrawable(null);
                             } else {
                                 Drawable image = new BitmapDrawable(getResources(), BitmapFactory.decodeByteArray(data, 0, data.length));
@@ -366,16 +387,8 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
     @Override
     public void onPause() {
-        super.onPause();
         LogW.d(LOG_TAG, "paused");
-
-        SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putString(KEY_ACCESS_TOKEN, UserInfo.getAccessToken());
-
-        LogW.d(LOG_TAG, "saving access token=" + UserInfo.getAccessToken());
-
-        editor.apply();
+        super.onPause();
     }
 
     @Override
@@ -389,7 +402,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         super.onCreateOptionsMenu(menu);
         getMenuInflater().inflate(R.menu.menu_start, menu);
         MenuItem actionLogOut = menu.findItem(R.id.action_log_out);
-        actionLogOut.setVisible(loggedIn);
+        actionLogOut.setVisible(isLoggedIn());
         return true;
     }
 
@@ -400,25 +413,24 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
             case R.id.action_log_out:
                 LogW.d(LOG_TAG, getString(R.string.action_log_out) + " clicked");
 
-                if (loggedIn) {
-                    Utils.doWhenAuthorized(this, new Utils.Action() {
+                if (isLoggedIn()) {
+                    pinDialog = Utils.doWhenAuthorized(this, new Utils.Action() {
                         @Override
                         public void execute() {
                             if (MusicService.player() != null) {
                                 MusicService.player().logout();
                             }
 
-                            UserInfo.setAccessToken(null);
                             AuthenticationClient.clearCookies(ListLockActivity.this);
-
-                            setLoggedIn(false);
+                            SavedPreferences.clearTokenPrefs(ListLockActivity.this);
+                            updateViews();
                         }
-                    }, adminModeBanner);
+                    }, adminModeBanner, true);
                 }
                 break;
             case R.id.action_pin:
                 LogW.d(LOG_TAG, getString(R.string.action_pin) + " clicked");
-                Utils.doWhenAuthorized(this, new Utils.Action() {
+                pinDialog = Utils.doWhenAuthorized(this, new Utils.Action() {
                     @Override
                     public void execute() {
                         AlertDialog.Builder builder = new AlertDialog.Builder(ListLockActivity.this);
@@ -444,14 +456,14 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
                         builder.setView(input);
 
-                        final AlertDialog alertDialog = builder.create();
+                        newPinDialog = builder.create();
 
-                        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+                        newPinDialog.setOnShowListener(new DialogInterface.OnShowListener() {
 
                             @Override
                             public void onShow(DialogInterface dialog) {
 
-                                Button b = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                                Button b = newPinDialog.getButton(AlertDialog.BUTTON_POSITIVE);
                                 b.setOnClickListener(new View.OnClickListener() {
 
                                     @Override
@@ -466,7 +478,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                                             SharedPreferences.Editor editor = settings.edit();
                                             editor.putString(Utils.KEY_PIN, input.getText().toString());
                                             editor.commit();
-                                            alertDialog.dismiss();
+                                            newPinDialog.dismiss();
 
                                             Utils.showTextBriefly(getString(R.string.new_pin_set), ListLockActivity.this);
                                         }
@@ -475,9 +487,15 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                             }
                         });
 
-                        alertDialog.show();
+                        newPinDialog.show();
                     }
-                }, adminModeBanner);
+                }, adminModeBanner, true);
+                break;
+            case R.id.action_info:
+                appInfoDialog = new AppInfoDialog(ListLockActivity.this);
+                appInfoDialog.show();
+                // Make links clickable
+                ((TextView)appInfoDialog.findViewById(android.R.id.message)).setMovementMethod(LinkMovementMethod.getInstance());
                 break;
             default:
                 break;
@@ -494,9 +512,22 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         adminMode = on;
     }
 
+    public boolean isLoggedIn() {
+        return MusicService.player() != null && MusicService.player().isLoggedIn();
+    }
+
     @Override
     protected void onDestroy() {
         LogW.d(LOG_TAG, "destroyed");
+
+        if (pinDialog != null && pinDialog.isShowing()) {
+            pinDialog.dismiss();
+        }
+
+        if (appInfoDialog != null && appInfoDialog.isShowing()) {
+            appInfoDialog.dismiss();
+        }
+
         super.onDestroy();
     }
 

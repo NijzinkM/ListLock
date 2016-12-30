@@ -47,17 +47,17 @@ public class PlaylistActivity extends AppCompatActivity {
 
             if (playLists.isEmpty()) {
                 LogW.d(LOG_TAG, "no playlists found");
-                Utils.showTextBriefly(getString(R.string.no_playlists_found), getApplicationContext());
+                Utils.showTextBriefly(getString(R.string.no_playlists_found), this);
                 finish();
             }
             for (PlaylistInfo playlist : playLists) {
                 LogW.d(LOG_TAG, "playlist found: " + playlist.getName());
-                TableRow tableRow = new PlaylistTableRow(getApplicationContext(), playlist);
+                TableRow tableRow = new PlaylistTableRow(this, playlist);
                 table.addView(tableRow);
             }
         } catch (SpotifyWebRequestException e) {
             LogW.e(LOG_TAG, "failed to request playlists", e);
-            Utils.showTextBriefly(getString(R.string.retrieve_playlists_failed), getApplicationContext());
+            Utils.showTextBriefly(getString(R.string.retrieve_playlists_failed), this);
             finish();
         }
 
@@ -91,16 +91,4 @@ public class PlaylistActivity extends AppCompatActivity {
         }
     }
 
-//    @Override
-//    public boolean onTouchEvent(MotionEvent event) {
-//        LogW.d(LOG_TAG, event.toString());
-//        // finish activity when clicked outside border
-//        if (MotionEvent.ACTION_OUTSIDE == event.getAction()) {
-//            finish();
-//            return true;
-//        }
-//
-//        // delegate everything else to this activity
-//        return super.onTouchEvent(event);
-//    }
 }

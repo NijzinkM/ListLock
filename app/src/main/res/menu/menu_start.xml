@@ -12,8 +12,15 @@
 
     <item
         android:id="@+id/action_pin"
-        android:orderInCategory="100"
+        android:orderInCategory="10"
         android:title="@string/action_pin"
+        app:showAsAction="ifRoom"
+        />
+
+    <item
+        android:id="@+id/action_info"
+        android:orderInCategory="20"
+        android:title="@string/about"
         app:showAsAction="ifRoom"
         />
 

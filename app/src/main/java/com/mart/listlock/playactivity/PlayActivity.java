@@ -20,8 +20,9 @@ import android.widget.SeekBar;
 
 import com.mart.listlock.R;
 import com.mart.listlock.common.LogW;
-import com.mart.listlock.common.Utils;
+import com.mart.listlock.common.SavedPreferences;
 import com.mart.listlock.common.UserInfo;
+import com.mart.listlock.common.Utils;
 import com.mart.listlock.listlockactivity.ListLockActivity;
 import com.mart.listlock.playactivity.playlistactivity.PlaylistActivity;
 import com.mart.listlock.playactivity.searchactivity.SearchActivity;
@@ -29,8 +30,8 @@ import com.mart.listlock.playactivity.spotifyobjects.Playlist;
 import com.mart.listlock.playactivity.spotifyobjects.PlaylistInfo;
 import com.mart.listlock.playactivity.spotifyobjects.SpotifySong;
 import com.mart.listlock.request.SpotifyWebRequestException;
-import com.spotify.sdk.android.player.PlayerState;
-import com.spotify.sdk.android.player.PlayerStateCallback;
+import com.spotify.sdk.android.player.PlaybackState;
+import com.spotify.sdk.android.player.PlayerEvent;
 
 import java.util.List;
 import java.util.Timer;
@@ -42,10 +43,7 @@ public class PlayActivity extends AppCompatActivity {
     public static final int SEARCH_REQUEST_CODE = 9129;
     public static final int PLAYLIST_REQUEST_CODE = 1046;
     public static final String KEY_SONG_URI = "song_uri";
-    public static final String KEY_SONG = "song";
-    public static final String KEY_SONG_LOCKED = "song_locked";
     public static final String KEY_PLAYLIST_ID = "playlist_id";
-    private static final String KEY_SIZE = "size";
 
     private MusicService musicService;
     private Intent playIntent;
@@ -60,6 +58,8 @@ public class PlayActivity extends AppCompatActivity {
     private IntentFilter intentFilter;
     private Typeface fontAwesome;
     private LinearLayout adminModeBanner;
+    private AlertDialog pinDialog;
+    private AlertDialog removeSongDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,15 +119,11 @@ public class PlayActivity extends AppCompatActivity {
                 if (!Utils.isNetworkAvailable(PlayActivity.this)) {
                     Utils.showTextBriefly(getString(R.string.no_internet), PlayActivity.this);
                 } else if (musicService.getSongs().isEmpty()) {
-                    final SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-
                     Utils.doWhileLoading(new Utils.Action() {
                         @Override
                         public void execute() {
                             try {
-                                for (int i = 0; i < settings.getInt(KEY_SIZE, 0); i++) {
-                                    SpotifySong song = new SpotifySong(settings.getString(KEY_SONG + i, null));
-                                    song.setLocked(settings.getBoolean(KEY_SONG_LOCKED + i, true));
+                                for (SpotifySong song : SavedPreferences.getSongs(PlayActivity.this)) {
                                     musicService.addSong(song);
                                 }
                             } catch (SpotifyWebRequestException e) {
@@ -145,48 +141,38 @@ public class PlayActivity extends AppCompatActivity {
                 musicBound = false;
             }
         };
+    }
 
-        timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                MusicService.player().getPlayerState(new PlayerStateCallback() {
-                    @Override
-                    public void onPlayerState(PlayerState playerState) {
-                        setPlaying(playerState.playing);
-                        if (playing && !trackingTouch && !MusicService.player().isShutdown()) {
-                            updateSeekBar(playerState.durationInMs, playerState.positionInMs);
+    private class MusicTimer extends Timer {
+        public MusicTimer() {
+            schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    PlaybackState playbackState = MusicService.player().getPlaybackState();
 
-                            // musicService might not be initialized yet
-                            if (musicService != null) {
-                                musicService.setMillis(playerState.positionInMs);
-                            }
-                        }
+                    setPlaying(playbackState.isPlaying);
+
+                    if (playing && !trackingTouch && !MusicService.player().isShutdown() && musicService.getCurrentSong() != null) {
+                        updateSeekBar((int) musicService.getCurrentSong().getInfo().getLength(), (int) playbackState.positionMs);
                     }
-                });
-            }
-        }, 0, 1000);
-
+                }
+            }, 0, 1000);
+        }
     }
 
     private class PlaybackEventReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            MusicService.PlaybackEvent playbackEvent = (MusicService.PlaybackEvent) intent.getSerializableExtra(MusicService.KEY_PLAYBACK_EVENT);
+            PlayerEvent playbackEvent = (PlayerEvent) intent.getSerializableExtra(MusicService.KEY_PLAYBACK_EVENT);
             LogW.d(LOG_TAG, "playback event received: " + playbackEvent);
 
             switch (playbackEvent) {
-                case PLAY:
+                case kSpPlaybackNotifyPlay:
                     setPlaying(true);
                     break;
-                case PAUSE:
+                case kSpPlaybackNotifyPause:
                     setPlaying(false);
                     break;
-                case RESET:
-                    updateSeekBar(0, 0);
-                    break;
-                case ERROR:
-                    LogW.e(LOG_TAG, "failed to handle playback event", musicService.getException());
             }
         }
     }
@@ -215,7 +201,11 @@ public class PlayActivity extends AppCompatActivity {
         LogW.d(LOG_TAG, "resumed");
         registerReceiver(playbackEventReceiver, intentFilter);
 
-        Utils.setAuthorized(ListLockActivity.inAdminMode(), adminModeBanner);
+        timer = new MusicTimer();
+
+        if (ListLockActivity.inAdminMode()) {
+            Utils.setAuthorized(adminModeBanner);
+        }
     }
 
     @Override
@@ -227,10 +217,10 @@ public class PlayActivity extends AppCompatActivity {
                     SpotifySong newSong = new SpotifySong(extras.getString(KEY_SONG_URI));
                     newSong.setLocked(false);
                     musicService.addSong(newSong);
-                    Utils.showTextBriefly(getString(R.string.song_added, newSong.getInfo().getName()), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.song_added, newSong.getInfo().getName()), this);
                 } catch (SpotifyWebRequestException e) {
                     LogW.e(LOG_TAG, "failed to request song", e);
-                    Utils.showTextBriefly(getString(R.string.add_song_failed), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.add_song_failed), this);
                 }
             } else if (requestCode == PLAYLIST_REQUEST_CODE) {
                 PlaylistInfo playlist = null;
@@ -243,21 +233,23 @@ public class PlayActivity extends AppCompatActivity {
                             List<SpotifySong> songs = playlist.getSongs();
                             if (songs.isEmpty()) {
                                 LogW.d(LOG_TAG, "no songs in playlist " + playlist.getName());
-                                Utils.showTextBriefly(getString(R.string.no_songs_in_playlist, playlist.getName()), getApplicationContext());
+                                Utils.showTextBriefly(getString(R.string.no_songs_in_playlist, playlist.getName()), PlayActivity.this);
                             } else {
                                 musicService.clearSongs();
-                                musicService.setMillis(0);
+                                MusicService.player().seekToPosition(0);
                                 updateSeekBar(0, 0);
                                 musicService.pause();
                                 musicService.addAllSongs(songs);
                             }
                         } catch (SpotifyWebRequestException e) {
                             LogW.e(LOG_TAG, "failed to request playlist", e);
-                            Utils.showTextBriefly(getString(R.string.request_playlist_failed), getApplicationContext());
+                            Utils.showTextBriefly(getString(R.string.request_playlist_failed), PlayActivity.this);
                         }
                     }
                 }, this);
             }
+
+            SavedPreferences.setSongs(musicService.getSongs(), PlayActivity.this);
         }
     }
 
@@ -270,18 +262,18 @@ public class PlayActivity extends AppCompatActivity {
     public void onClickAddPlaylist(View view) {
         LogW.d(LOG_TAG, "view to add playlist clicked");
 
-        Utils.doWhenAuthorized(this, new Utils.Action() {
+        pinDialog = Utils.doWhenAuthorized(this, new Utils.Action() {
             @Override
             public void execute() {
                 Intent intent = new Intent(PlayActivity.this, PlaylistActivity.class);
                 startActivityForResult(intent, PLAYLIST_REQUEST_CODE);
             }
-        }, adminModeBanner);
+        }, adminModeBanner, false);
     }
 
     public void onClickNext(View view) {
         LogW.d(LOG_TAG, "view to skip clicked");
-        Utils.doWhenAuthorized(this, new Utils.Action() {
+        pinDialog = Utils.doWhenAuthorized(this, new Utils.Action() {
             @Override
             public void execute() {
                 try {
@@ -295,7 +287,7 @@ public class PlayActivity extends AppCompatActivity {
                     }
                 }
             }
-        }, adminModeBanner);
+        }, adminModeBanner, false);
     }
 
     public void onClickPlay(View view) {
@@ -310,14 +302,14 @@ public class PlayActivity extends AppCompatActivity {
         } catch (MusicServiceException e) {
             switch (e.getExceptionType()) {
                 case SONG_LIST_EMPTY:
-                    Utils.showTextBriefly(getString(R.string.song_list_empty), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.song_list_empty), this);
                     break;
                 case ACCOUNT_NOT_PREMIUM:
-                    Utils.showTextProlonged(getString(R.string.not_premium), getApplicationContext());
+                    Utils.showTextProlonged(getString(R.string.not_premium), this);
                     break;
                 case NO_TABLE_ATTACHED:
                     LogW.e(LOG_TAG, "no table attached");
-                    Utils.showTextBriefly(getString(R.string.play_or_pause_failed), getApplicationContext());
+                    Utils.showTextBriefly(getString(R.string.play_or_pause_failed), this);
                     break;
             }
         }
@@ -329,20 +321,20 @@ public class PlayActivity extends AppCompatActivity {
         final SongInfoRow row = (SongInfoRow) view;
         final String title = row.getSongInfo().getName();
 
-        new AlertDialog.Builder(this)
+        removeSongDialog = new AlertDialog.Builder(this)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setMessage(getString(R.string.delete_song_conformation, title))
                 .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Utils.doWhenAuthorized(PlayActivity.this, new Utils.Action() {
+                        pinDialog = Utils.doWhenAuthorized(PlayActivity.this, new Utils.Action() {
                             @Override
                             public void execute() {
                                 try {
                                     if (musicService.removeSongFromTable(((SongInfoRow) view).getSongInfo().getId())) {
-                                        Utils.showTextBriefly(getString(R.string.song_removed, title), getApplicationContext());
+                                        Utils.showTextBriefly(getString(R.string.song_removed, title), PlayActivity.this);
                                     } else {
-                                        Utils.showTextBriefly(getString(R.string.song_not_in_list, title), getApplicationContext());
+                                        Utils.showTextBriefly(getString(R.string.song_not_in_list, title), PlayActivity.this);
                                     }
                                 } catch (MusicServiceException e) {
                                     if (e.getExceptionType() != MusicServiceException.ExceptionType.SONG_LIST_EMPTY) {
@@ -351,21 +343,27 @@ public class PlayActivity extends AppCompatActivity {
                                     }
                                 }
                             }
-                        }, adminModeBanner);
+                        }, adminModeBanner, false);
                     }
                 })
                 .setNegativeButton(getString(R.string.no), null)
-                .show();
+                .create();
+        removeSongDialog.show();
     }
 
     public void onClickAdminModeBanner(View view) {
         LogW.d(LOG_TAG, "view to leave admin mode clicked");
-        Utils.setAuthorized(false, adminModeBanner);
+        Utils.setUnauthorized(adminModeBanner, this);
     }
 
-    public void setPlaying(boolean playing) {
+    public void setPlaying(final boolean playing) {
         this.playing = playing;
-        playPauseButton.setText(playing ? R.string.pause : R.string.play);
+        playPauseButton.post(new Runnable() {
+            @Override
+            public void run() {
+                playPauseButton.setText(playing ? R.string.pause : R.string.play);
+            }
+        });
     }
 
     @Override
@@ -373,33 +371,28 @@ public class PlayActivity extends AppCompatActivity {
         super.onPause();
         LogW.d(LOG_TAG, "paused");
 
-        SharedPreferences settings = getSharedPreferences(getString(R.string.app_name), 0);
-        SharedPreferences.Editor editor = settings.edit();
+        timer.cancel();
 
-        final List<SpotifySong> songs = musicService.getSongs();
+        if (musicBound) {
+            SavedPreferences.setSongs(musicService.getSongs(), PlayActivity.this);
 
-        final int size = songs.size();
-
-        editor.putInt(KEY_SIZE, size);
-
-        for (int i = 0; i < size; i++) {
-            final String uri = songs.get(i).getURI();
-            final boolean locked = songs.get(i).isLocked();
-            editor.putString(KEY_SONG + i, uri);
-            editor.putBoolean(KEY_SONG_LOCKED + i, locked);
-            LogW.d(LOG_TAG, "saving song URI: " + uri);
-            LogW.d(LOG_TAG, "saving song locked: " + locked);
+            unregisterReceiver(playbackEventReceiver);
         }
-
-        editor.apply();
-
-        unregisterReceiver(playbackEventReceiver);
     }
 
     @Override
     protected void onDestroy() {
         LogW.d(LOG_TAG, "destroyed");
         unbindService(musicConnection);
+
+        if (pinDialog != null && pinDialog.isShowing()) {
+            pinDialog.dismiss();
+        }
+
+        if (removeSongDialog != null && removeSongDialog.isShowing()) {
+            removeSongDialog.dismiss();
+        }
+
         super.onDestroy();
     }
 }

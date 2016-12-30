@@ -65,7 +65,8 @@
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:layout_alignParentBottom="true"
-        android:onClick="onClickAdminModeBanner">
+        android:onClick="onClickAdminModeBanner"
+        android:visibility="gone">
 
         <View android:layout_width="match_parent"
             android:background="@color/accent"
@@ -75,7 +76,7 @@
             style="@style/Header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/listlord_mode"
+            android:text="@string/admin_mode"
             android:gravity="center"/>
 
         <View android:layout_width="match_parent"
