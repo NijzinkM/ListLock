@@ -5,7 +5,7 @@
     <string name="action_pin">Set PIN</string>
     <string name="action_log_out">Log out</string>
     <string name="not_logged_in">Please log in to your Spotify account</string>
-    <string name="welcome_user" formatted="false">Welcome, %s</string>
+    <string name="welcome_user">Welcome, %s</string>
     <string name="login">Log in</string>
     <string name="login_fail">Login failed</string>
     <string name="login_cancel">Login canceled</string>
