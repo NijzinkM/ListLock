@@ -9,7 +9,7 @@
     <string name="login">Log in</string>
     <string name="login_fail">Login failed</string>
     <string name="login_cancel">Login canceled</string>
-    <string name="login_success">Login successful</string>
+    <string name="auth_success">Authentication successful</string>
     <string name="player_terminate_fail">Unable to terminate current player (exceptions may occur)</string>
     <string name="user_info_fail">Could not retrieve user information</string>
     <string name="start">Let the music play!</string>
