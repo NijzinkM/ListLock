@@ -73,4 +73,5 @@
             <footer>Copyright 2016 Mart Nijzink</footer>
         ]]>
     </string>
+    <string name="playback_error">A playback error occurred: %1$s</string>
 </resources>
