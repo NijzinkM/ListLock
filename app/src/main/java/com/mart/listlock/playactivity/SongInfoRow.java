@@ -67,7 +67,7 @@ public class SongInfoRow extends LinearLayout {
             firstColumn.setOrientation(LinearLayout.HORIZONTAL);
             firstColumn.addView(line);
 
-            titleText.setWidth(headers.findViewById(R.id.header_title).getWidth() - UNLOCKED_LINE_WIDTH - UNLOCKED_LINE_PADDING);
+            titleText.setWidth(headers.findViewById(R.id.header_title).getWidth() - UNLOCKED_LINE_WIDTH);
             titleText.setPadding(UNLOCKED_LINE_PADDING, 0, 0, 0);
             firstColumn.addView(titleText);
 
