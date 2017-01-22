@@ -422,7 +422,6 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                                 MusicService.player().logout();
                             }
 
-                            AuthenticationClient.clearCookies(ListLockActivity.this);
                             SavedPreferences.clearTokenPrefs(ListLockActivity.this);
                             updateViews();
                         }

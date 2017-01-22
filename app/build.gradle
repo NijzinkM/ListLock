@@ -28,7 +28,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.spotify.sdk:spotify-auth-beta21-noconnect-2.18c@aar'
+    compile 'com.spotify.sdk:spotify-android-auth-1.0.0@aar'
     // This library handles authentication and authorization
     compile 'com.spotify.sdk:spotify-player-24-noconnect-2.20b@aar'
     // This library handles music playback
