@@ -155,10 +155,10 @@ public class PlayActivity extends AppCompatActivity {
                     if (MusicService.error() != null) {
                         errorDialog = new AlertDialog.Builder(PlayActivity.this)
                                 .setIcon(android.R.drawable.ic_dialog_alert)
-                                .setMessage(getString(R.string.playbackError, MusicService.error()))
+                                .setMessage(getString(R.string.playback_error, MusicService.error()))
                                 .show();
                         MusicService.resetError();
-                    } else if (playing && !trackingTouch && !MusicService.player().isShutdown() && musicService.getCurrentSong() != null) {
+                    } else if (playing && !trackingTouch && !MusicService.player().isShutdown() && musicService != null && musicService.getCurrentSong() != null) {
                         updateSeekBar((int) musicService.getCurrentSong().getInfo().getLength(), (int) playbackState.positionMs);
                     }
                 }
