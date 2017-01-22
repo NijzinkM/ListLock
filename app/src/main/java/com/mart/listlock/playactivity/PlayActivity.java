@@ -158,7 +158,7 @@ public class PlayActivity extends AppCompatActivity {
                                 .setMessage(getString(R.string.playbackError, MusicService.error()))
                                 .show();
                         MusicService.resetError();
-                    } else if (playing && !trackingTouch && !MusicService.player().isShutdown() && musicService.getCurrentSong() != null) {
+                    } else if (playing && !trackingTouch && !MusicService.player().isShutdown() && musicService != null && musicService.getCurrentSong() != null) {
                         updateSeekBar((int) musicService.getCurrentSong().getInfo().getLength(), (int) playbackState.positionMs);
                     }
                 }
