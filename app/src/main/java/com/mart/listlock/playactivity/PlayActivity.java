@@ -242,7 +242,7 @@ public class PlayActivity extends AppCompatActivity {
                                 Utils.showTextBriefly(getString(R.string.no_songs_in_playlist, playlist.getName()), PlayActivity.this);
                             } else {
                                 musicService.clearSongs();
-                                MusicService.player().seekToPosition(0);
+                                MusicService.player().seekToPosition(musicService, 0);
                                 updateSeekBar(0, 0);
                                 musicService.pause();
                                 musicService.addAllSongs(songs);

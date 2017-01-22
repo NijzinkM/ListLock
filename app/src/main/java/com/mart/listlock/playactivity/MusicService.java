@@ -24,7 +24,7 @@ import com.spotify.sdk.android.player.SpotifyPlayer;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MusicService extends Service implements Player.NotificationCallback {
+public class MusicService extends Service implements Player.NotificationCallback, Player.OperationCallback {
 
     private static final String LOG_TAG = MusicService.class.getName();
     public static final String KEY_PLAYBACK_EVENT = "playbackevent";
@@ -45,7 +45,7 @@ public class MusicService extends Service implements Player.NotificationCallback
         songs = new ArrayList<>();
         if (mPlayer != null) {
             mPlayer.addNotificationCallback(this);
-            mPlayer.setConnectivityStatus(getNetworkConnectivity(MusicService.this));
+            mPlayer.setConnectivityStatus(this, getNetworkConnectivity(MusicService.this));
         }
     }
 
@@ -185,6 +185,16 @@ public class MusicService extends Service implements Player.NotificationCallback
         error = null;
     }
 
+    @Override
+    public void onSuccess() {
+        Log.d(LOG_TAG, "operation succes");
+    }
+
+    @Override
+    public void onError(Error error) {
+        Log.e(LOG_TAG, "operation error " + error.name());
+    }
+
     public class MusicBinder extends Binder {
         MusicService getService() {
             return MusicService.this;
@@ -205,12 +215,12 @@ public class MusicService extends Service implements Player.NotificationCallback
             throw new MusicServiceException(MusicServiceException.ExceptionType.ACCOUNT_NOT_PREMIUM);
 
         LogW.d(LOG_TAG, "songs currently in list: " + songs.size());
-        mPlayer.play(songs.get(0).getURI(), 0, position);
+        mPlayer.playUri(this, songs.get(0).getURI(), 0, position);
     }
 
     public void pause() {
         LogW.d(LOG_TAG, "pause called");
-        mPlayer.pause();
+        mPlayer.pause(this);
     }
 
     public void next() throws MusicServiceException {
@@ -223,7 +233,7 @@ public class MusicService extends Service implements Player.NotificationCallback
     }
 
     public void seekToPosition(int positionInMs) {
-        mPlayer.seekToPosition(positionInMs);
+        mPlayer.seekToPosition(this, positionInMs);
     }
 
     public static void setPlayer(SpotifyPlayer player) {
