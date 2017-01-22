@@ -44,6 +44,7 @@ import com.spotify.sdk.android.authentication.AuthenticationRequest;
 import com.spotify.sdk.android.authentication.AuthenticationResponse;
 import com.spotify.sdk.android.player.Config;
 import com.spotify.sdk.android.player.ConnectionStateCallback;
+import com.spotify.sdk.android.player.Error;
 import com.spotify.sdk.android.player.Spotify;
 import com.spotify.sdk.android.player.SpotifyPlayer;
 
@@ -292,8 +293,8 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
     }
 
     @Override
-    public void onLoginFailed(int i) {
-        LogW.e(LOG_TAG, "login error " + i);
+    public void onLoginFailed(Error e) {
+        LogW.e(LOG_TAG, "login error " + e.name());
     }
 
     public void onClickStart(View view) {
@@ -421,7 +422,6 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                                 MusicService.player().logout();
                             }
 
-                            AuthenticationClient.clearCookies(ListLockActivity.this);
                             SavedPreferences.clearTokenPrefs(ListLockActivity.this);
                             updateViews();
                         }
