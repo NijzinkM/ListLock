@@ -36,6 +36,8 @@ public class MusicService extends Service implements Player.NotificationCallback
     private LinearLayout songListLayout;
     private PlayActivity parent;
 
+    private static Error error;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -89,6 +91,8 @@ public class MusicService extends Service implements Player.NotificationCallback
     @Override
     public void onPlaybackError(Error error) {
         LogW.d(LOG_TAG, "playback error received: " + error.name());
+        pause();
+        this.error = error;
     }
 
     public void addSong(SpotifySong song) {
@@ -177,6 +181,10 @@ public class MusicService extends Service implements Player.NotificationCallback
         return songs;
     }
 
+    public static void resetError() {
+        error = null;
+    }
+
     public class MusicBinder extends Binder {
         MusicService getService() {
             return MusicService.this;
@@ -249,6 +257,10 @@ public class MusicService extends Service implements Player.NotificationCallback
             return null;
         }
         return songs.get(0);
+    }
+
+    public static Error error() {
+        return error;
     }
 
     @Override

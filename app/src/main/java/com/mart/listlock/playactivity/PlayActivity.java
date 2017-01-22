@@ -60,6 +60,7 @@ public class PlayActivity extends AppCompatActivity {
     private LinearLayout adminModeBanner;
     private AlertDialog pinDialog;
     private AlertDialog removeSongDialog;
+    private AlertDialog errorDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -151,8 +152,13 @@ public class PlayActivity extends AppCompatActivity {
                     PlaybackState playbackState = MusicService.player().getPlaybackState();
 
                     setPlaying(playbackState.isPlaying);
-
-                    if (playing && !trackingTouch && !MusicService.player().isShutdown() && musicService.getCurrentSong() != null) {
+                    if (MusicService.error() != null) {
+                        errorDialog = new AlertDialog.Builder(PlayActivity.this)
+                                .setIcon(android.R.drawable.ic_dialog_alert)
+                                .setMessage(getString(R.string.playbackError, MusicService.error()))
+                                .show();
+                        MusicService.resetError();
+                    } else if (playing && !trackingTouch && !MusicService.player().isShutdown() && musicService.getCurrentSong() != null) {
                         updateSeekBar((int) musicService.getCurrentSong().getInfo().getLength(), (int) playbackState.positionMs);
                     }
                 }
