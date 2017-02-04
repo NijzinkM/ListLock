@@ -38,7 +38,7 @@
     <string name="retrieve_playlists_failed">Could not retrieve playlists</string>
     <string name="no_playlists_found">No playlists found</string>
     <string name="no_songs_in_playlist">No songs in playlist %1$s</string>
-    <string name="request_playlist_failed">Could not request playlist %1$s</string>
+    <string name="request_playlist_failed">Could not request playlist</string>
     <string name="pin_required">Enter ListLord Mode first</string>
     <string name="ok">OK</string>
     <string name="invalid_pin">Invalid PIN</string>
