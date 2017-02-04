@@ -44,6 +44,7 @@ public class PlayActivity extends AppCompatActivity {
     public static final int PLAYLIST_REQUEST_CODE = 1046;
     public static final String KEY_SONG_URI = "song_uri";
     public static final String KEY_PLAYLIST_ID = "playlist_id";
+    public static final String KEY_PLAYLIST_OWNER = "playlist_owner";
 
     private MusicService musicService;
     private Intent playIntent;
@@ -229,13 +230,11 @@ public class PlayActivity extends AppCompatActivity {
                     Utils.showTextBriefly(getString(R.string.add_song_failed), this);
                 }
             } else if (requestCode == PLAYLIST_REQUEST_CODE) {
-                PlaylistInfo playlist = null;
-
                 Utils.doWhileLoading(new Utils.Action() {
                     @Override
                     public void execute() {
                         try {
-                            PlaylistInfo playlist = (PlaylistInfo) new Playlist(extras.getString(KEY_PLAYLIST_ID), UserInfo.getAccessToken()).getInfo();
+                            PlaylistInfo playlist = (PlaylistInfo) new Playlist(extras.getString(KEY_PLAYLIST_ID), extras.getString(KEY_PLAYLIST_OWNER), UserInfo.getAccessToken()).getInfo();
                             List<SpotifySong> songs = playlist.getSongs();
                             if (songs.isEmpty()) {
                                 LogW.d(LOG_TAG, "no songs in playlist " + playlist.getName());

@@ -84,6 +84,7 @@ public class PlaylistActivity extends AppCompatActivity {
                     LogW.d(LOG_TAG, "playlist '" + playlistInfo.getName() + "' clicked");
                     Intent data = new Intent();
                     data.putExtra(PlayActivity.KEY_PLAYLIST_ID, playlistInfo.getId());
+                    data.putExtra(PlayActivity.KEY_PLAYLIST_OWNER, playlistInfo.getOwner());
                     setResult(PlayActivity.PLAYLIST_REQUEST_CODE, data);
                     finish();
                 }

@@ -287,7 +287,9 @@ public class SpotifyWebRequest {
                     JSONArray items = resultsJSON.getJSONArray("items");
                     for (int i = 0; i < items.length(); i++) {
                         PlaylistInfo playlistInfo = new PlaylistInfo();
-                        playlistInfo.override(readDefaultInfo((JSONObject) items.get(i)));
+                        JSONObject playlistJSON = (JSONObject) items.get(i);
+                        playlistInfo.override(readDefaultInfo(playlistJSON));
+                        playlistInfo.setOwner(playlistJSON.getJSONObject("owner").getString("id"));
                         playlists.add(playlistInfo);
                     }
                 } catch (JSONException e) {
@@ -311,7 +313,7 @@ public class SpotifyWebRequest {
         return playlists;
     }
 
-    public static PlaylistInfo requestPlaylistInfo(String id, String accessToken) throws SpotifyWebRequestException {
+    public static PlaylistInfo requestPlaylistInfo(String id, String owner, String accessToken) throws SpotifyWebRequestException {
         final PlaylistInfo playlistInfo = new PlaylistInfo();
 
         GETResponseHandler responseHandler = new DefaultGETResponseHandler() {
@@ -333,7 +335,7 @@ public class SpotifyWebRequest {
             }
         };
 
-        final String url = BASE_URL + "/users/" + UserInfo.getId() + "/playlists/" + id;
+        final String url = BASE_URL + "/users/" + owner + "/playlists/" + id;
 
         RetrieveHTTPSResponse responseRetriever = new RetrieveHTTPSResponse(url, RequestMethod.GET);
         responseRetriever.addHeader(new Header(Header.AUTHORIZATION, "Bearer " + accessToken));
@@ -461,6 +463,8 @@ public class SpotifyWebRequest {
     private static PlaylistInfo readPlaylistJSON(JSONObject playlistJSON) throws JSONException {
         PlaylistInfo playlistInfo = new PlaylistInfo();
         playlistInfo.override(readDefaultInfo(playlistJSON));
+
+        // Tracks
         JSONObject tracks = playlistJSON.getJSONObject("tracks");
         JSONArray items = tracks.getJSONArray("items");
         for (int i = 0; i < items.length(); i++) {
@@ -470,6 +474,11 @@ public class SpotifyWebRequest {
             song.setLocked(true);
             playlistInfo.addSong(song);
         }
+
+        // Owner
+        JSONObject owner = playlistJSON.getJSONObject("owner");
+        playlistInfo.setOwner(owner.getString("id"));
+
         return playlistInfo;
     }
 
