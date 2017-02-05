@@ -2,20 +2,16 @@ package com.mart.listlock.playactivity.searchactivity;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.view.KeyEvent;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewTreeObserver;
-import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TableLayout;
-import android.widget.TableRow;
-import android.widget.TextView;
 
 import com.mart.listlock.common.LogW;
 import com.mart.listlock.common.SavedPreferences;
@@ -30,6 +26,7 @@ import com.mart.listlock.R;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 public class SearchActivity extends AppCompatActivity {
 
@@ -77,30 +74,51 @@ public class SearchActivity extends AppCompatActivity {
             selectPageAndSearch();
         }
 
+        // Amend list if necessary when user has reached the bottom of the list
         scrollView.getViewTreeObserver().addOnScrollChangedListener(new ViewTreeObserver.OnScrollChangedListener() {
             @Override
             public void onScrollChanged() {
-                View view = scrollView.getChildAt(scrollView.getChildCount() - 1);
+                if (shouldListBeAmended()) {
+                    amendList();
+                }
+            }
+        });
 
-                // calculate the scrolldiff
-                final int scrollY = scrollView.getScrollY();
-                int diff = (view.getBottom() - (scrollView.getHeight() + scrollY));
-
-                // if diff is zero or less, then the bottom has been reached
-                if( diff <= 0 ) {
-                    final boolean shouldSearch = searched && allowSearching;
-                    LogW.d(LOG_TAG, "ScrollView bottom reached; searched = " + searched + "; allowSearching = " + allowSearching);
-                    if (shouldSearch) {
-                        selectPageAndSearch();
-                    }
+        // Amend list if necessary when views are added to the list
+        scrollView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                if (shouldListBeAmended()) {
+                    amendList();
                 }
             }
         });
     }
 
+    private boolean shouldListBeAmended() {
+        View view = scrollView.getChildAt(scrollView.getChildCount() - 1);
+
+        // calculate the scrolldiff
+        final int scrollY = scrollView.getScrollY();
+        int diff = (view.getBottom() - (scrollView.getHeight() + scrollY));
+
+        Log.d(LOG_TAG, "view bottom: " + view.getBottom() + "; scrollView height + Y: " + scrollView.getHeight() + scrollY);
+
+        // if diff is zero or less, then the bottom has been reached
+        return diff <= 0;
+    }
+
+    private void amendList() {
+        final boolean shouldSearch = searched && allowSearching;
+        LogW.d(LOG_TAG, "ScrollView bottom reached; searched = " + searched + "; allowSearching = " + allowSearching);
+        if (shouldSearch) {
+            selectPageAndSearch();
+        }
+    }
+
+
     private void selectPageAndSearch() {
         allowSearching = false;
-
         if (!Utils.isNetworkAvailable(this)) {
             Utils.showTextBriefly(getString(R.string.no_internet), this);
         } else if (pages < MAX_PAGES) {
@@ -178,12 +196,7 @@ public class SearchActivity extends AppCompatActivity {
                                 }
                             };
 
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    searchResultsList.addView(songInfoResultRow);
-                                }
-                            });
+                            addViewToList(songInfoResultRow);
                         }
 
                         allowSearching = true;
@@ -198,6 +211,15 @@ public class SearchActivity extends AppCompatActivity {
         } else {
             LogW.d(LOG_TAG, "no keyword specified");
         }
+    }
+
+    private void addViewToList(final SongInfoResultRow songInfoResultRow) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                searchResultsList.addView(songInfoResultRow);
+            }
+        });
     }
 
     @Override
