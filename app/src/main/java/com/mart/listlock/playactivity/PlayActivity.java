@@ -183,8 +183,8 @@ public class PlayActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             PlayerEvent playbackEvent = (PlayerEvent) intent.getSerializableExtra(MusicService.KEY_PLAYBACK_EVENT);
-            LogW.d(LOG_TAG, "playback event received: " + playbackEvent);
 
+            // Handle playback event UI consequences
             switch (playbackEvent) {
                 case kSpPlaybackNotifyPlay:
                     setPlaying(true);

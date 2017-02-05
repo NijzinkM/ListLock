@@ -57,11 +57,11 @@ public class MusicService extends Service implements Player.NotificationCallback
 
         intent.putExtra(KEY_PLAYBACK_EVENT, event);
 
-        if (getCurrentSong() != null && mPlayer.getPlaybackState().positionMs == getCurrentSong().getInfo().getLength()) {
+        if (event == PlayerEvent.kSpPlaybackNotifyTrackDelivered) {
             try {
                 next();
             } catch (MusicServiceException e) {
-                e.printStackTrace();
+                Log.e(LOG_TAG, "could not continue to next song");
             }
         }
 
