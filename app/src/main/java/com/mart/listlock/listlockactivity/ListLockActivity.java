@@ -248,15 +248,16 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
     public void onClickLogin(View view) {
         LogW.d(LOG_TAG, "view to log in clicked");
         if (!loggedIn) {
-            openLoginWindow();
+            openLoginWindow(true);
         } else {
             LogW.e(LOG_TAG, "login clicked while logged in; button should be hidden");
         }
     }
 
-    private void openLoginWindow() {
+    private void openLoginWindow(boolean showDialog) {
         final AuthenticationRequest request = new AuthenticationRequest.Builder(Constants.CLIENT_ID, AuthenticationResponse.Type.CODE, Constants.REDIRECT_URI)
                 .setScopes(new String[]{"user-read-private", "playlist-read", "playlist-read-private", "streaming"})
+                .setShowDialog(showDialog)
                 .build();
 
         AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
@@ -415,8 +416,11 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                             }
 
                             SavedPreferences.clearTokenPrefs(ListLockActivity.this);
+
                             loggedIn = false;
                             updateViews();
+
+                            openLoginWindow(true);
                         }
                     }, adminModeBanner, true);
                 } else {
