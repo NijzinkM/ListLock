@@ -120,7 +120,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
             switch (type) {
                 // Response was successful and contains auth token
                 case CODE:
-                    Utils.showTextBriefly(getString(R.string.login_success), ListLockActivity.this);
+                    Utils.showTextBriefly(getString(R.string.auth_success), ListLockActivity.this);
                     Utils.doWhileLoading(new Utils.Action() {
                         @Override
                         public void execute() {
@@ -262,7 +262,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
     private void openLoginWindow() {
         final AuthenticationRequest request = new AuthenticationRequest.Builder(Constants.CLIENT_ID, AuthenticationResponse.Type.CODE, Constants.REDIRECT_URI)
-                .setScopes(new String[]{"playlist-read", "playlist-read-private", "streaming"})
+                .setScopes(new String[]{"user-read-private", "playlist-read", "playlist-read-private", "streaming"})
                 .build();
 
         AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
