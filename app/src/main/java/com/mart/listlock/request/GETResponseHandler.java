@@ -16,6 +16,7 @@ public abstract class GETResponseHandler {
         final int statusCode = response.getHTTPStatusCode();
 
         LogW.d(LOG_TAG, "handling http status code " + statusCode);
+        LogW.d(LOG_TAG, "response text: " + response.getResponseText());
         
         switch (statusCode) {
             case 200:

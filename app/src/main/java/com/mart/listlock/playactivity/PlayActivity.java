@@ -8,7 +8,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -44,6 +43,7 @@ public class PlayActivity extends AppCompatActivity {
     public static final int PLAYLIST_REQUEST_CODE = 1046;
     public static final String KEY_SONG_URI = "song_uri";
     public static final String KEY_PLAYLIST_ID = "playlist_id";
+    public static final String KEY_PLAYLIST_OWNER = "playlist_owner";
 
     private MusicService musicService;
     private Intent playIntent;
@@ -61,6 +61,8 @@ public class PlayActivity extends AppCompatActivity {
     private AlertDialog pinDialog;
     private AlertDialog removeSongDialog;
     private AlertDialog errorDialog;
+    private SpotifySong newSong;
+    private boolean shouldAddNewSong;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,14 +99,22 @@ public class PlayActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                musicService.seekToPosition(seekBar.getProgress());
+                final int progress = seekBar.getProgress();
+
+                Utils.doWhenAuthorized(PlayActivity.this, new Utils.Action() {
+                    @Override
+                    public void execute() {
+                        // Do nothing, just authorize
+                    }
+                }, adminModeBanner, false);
+
+                if (ListLockActivity.inAdminMode()) {
+                    musicService.seekToPosition(progress);
+                }
+
                 trackingTouch = false;
             }
         });
-
-        playPauseButton = (Button) findViewById(R.id.button_play);
-
-        adminModeBanner = (LinearLayout) findViewById(R.id.admin_mode_banner);
 
         musicConnection = new ServiceConnection() {
             @Override
@@ -134,6 +144,10 @@ public class PlayActivity extends AppCompatActivity {
                         }
                     }, PlayActivity.this);
                 }
+
+                if (shouldAddNewSong) {
+                    addSearchedSong();
+                }
             }
 
             @Override
@@ -142,6 +156,17 @@ public class PlayActivity extends AppCompatActivity {
                 musicBound = false;
             }
         };
+
+        playPauseButton = (Button) findViewById(R.id.button_play);
+
+        adminModeBanner = (LinearLayout) findViewById(R.id.admin_mode_banner);
+    }
+
+    private void addSearchedSong() {
+        musicService.addSong(newSong);
+        Utils.showTextBriefly(getString(R.string.song_added, newSong.getInfo().getName()), PlayActivity.this);
+        shouldAddNewSong = false; // Add song only once
+        SavedPreferences.setSongs(musicService.getSongs(), PlayActivity.this);
     }
 
     private class MusicTimer extends Timer {
@@ -170,8 +195,8 @@ public class PlayActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             PlayerEvent playbackEvent = (PlayerEvent) intent.getSerializableExtra(MusicService.KEY_PLAYBACK_EVENT);
-            LogW.d(LOG_TAG, "playback event received: " + playbackEvent);
 
+            // Handle playback event UI consequences
             switch (playbackEvent) {
                 case kSpPlaybackNotifyPlay:
                     setPlaying(true);
@@ -212,6 +237,10 @@ public class PlayActivity extends AppCompatActivity {
         if (ListLockActivity.inAdminMode()) {
             Utils.setAuthorized(adminModeBanner);
         }
+
+        if (shouldAddNewSong && musicBound) { // If music is not bound, wait for music service to connect
+            addSearchedSong();
+        }
     }
 
     @Override
@@ -220,22 +249,19 @@ public class PlayActivity extends AppCompatActivity {
             final Bundle extras = data.getExtras();
             if (requestCode == SEARCH_REQUEST_CODE) {
                 try {
-                    SpotifySong newSong = new SpotifySong(extras.getString(KEY_SONG_URI));
+                    newSong = new SpotifySong(extras.getString(KEY_SONG_URI));
                     newSong.setLocked(false);
-                    musicService.addSong(newSong);
-                    Utils.showTextBriefly(getString(R.string.song_added, newSong.getInfo().getName()), this);
+                    shouldAddNewSong = true;
                 } catch (SpotifyWebRequestException e) {
                     LogW.e(LOG_TAG, "failed to request song", e);
                     Utils.showTextBriefly(getString(R.string.add_song_failed), this);
                 }
             } else if (requestCode == PLAYLIST_REQUEST_CODE) {
-                PlaylistInfo playlist = null;
-
                 Utils.doWhileLoading(new Utils.Action() {
                     @Override
                     public void execute() {
                         try {
-                            PlaylistInfo playlist = (PlaylistInfo) new Playlist(extras.getString(KEY_PLAYLIST_ID), UserInfo.getAccessToken()).getInfo();
+                            PlaylistInfo playlist = (PlaylistInfo) new Playlist(extras.getString(KEY_PLAYLIST_ID), extras.getString(KEY_PLAYLIST_OWNER), UserInfo.getAccessToken()).getInfo();
                             List<SpotifySong> songs = playlist.getSongs();
                             if (songs.isEmpty()) {
                                 LogW.d(LOG_TAG, "no songs in playlist " + playlist.getName());
@@ -254,8 +280,6 @@ public class PlayActivity extends AppCompatActivity {
                     }
                 }, this);
             }
-
-            SavedPreferences.setSongs(musicService.getSongs(), PlayActivity.this);
         }
     }
 

@@ -17,6 +17,7 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -56,9 +57,9 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
     private static final String LOG_TAG = ListLockActivity.class.getName();
 
     private static boolean adminMode = false;
+    private static boolean loggedIn = false;
 
     private LinearLayout adminModeBanner;
-    private CountDownLatch playerLoggedInSignal;
     private AlertDialog pinDialog;
     private AlertDialog newPinDialog;
     private AlertDialog appInfoDialog;
@@ -72,7 +73,6 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         setSupportActionBar(customToolbar);
 
         adminModeBanner = (LinearLayout) findViewById(R.id.admin_mode_banner);
-        playerLoggedInSignal = new CountDownLatch(1);
 
         LogW.turnOn();
 
@@ -80,7 +80,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
         updateViews();
 
-        if (SavedPreferences.getRefreshToken(ListLockActivity.this) != null && !isLoggedIn()) {
+        if (SavedPreferences.getRefreshToken(ListLockActivity.this) != null && !loggedIn) {
             LogW.d(LOG_TAG, "refresh token found");
             try {
                 final TokenSet tokens = SpotifyWebRequest.refreshAccessToken(SavedPreferences.getRefreshToken(ListLockActivity.this));
@@ -93,6 +93,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                 }, ListLockActivity.this);
             } catch (SpotifyWebRequestException e) {
                 LogW.e(LOG_TAG, "failed to refresh access token", e);
+                SavedPreferences.clearTokenPrefs(this); // Clear tokens so refreshAccessToken will not be called again
                 Utils.showTextBriefly(getString(R.string.auto_login_failed), ListLockActivity.this);
             }
         }
@@ -120,7 +121,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
             switch (type) {
                 // Response was successful and contains auth token
                 case CODE:
-                    Utils.showTextBriefly(getString(R.string.login_success), ListLockActivity.this);
+                    Utils.showTextBriefly(getString(R.string.auth_success), ListLockActivity.this);
                     Utils.doWhileLoading(new Utils.Action() {
                         @Override
                         public void execute() {
@@ -199,23 +200,16 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         LogW.d(LOG_TAG, "initializing UserInfo");
         try {
             UserInfo.init(tokens);
+            loggedIn = true;
+            updateViews();
         } catch (SpotifyWebRequestException e) {
             LogW.e(LOG_TAG, "failed to retrieve UserInfo", e);
             Utils.showTextProlonged(getString(R.string.user_info_fail), ListLockActivity.this);
-        }
-
-        try {
-            LogW.d(LOG_TAG, "waiting for player te be logged in before update views");
-            playerLoggedInSignal.await();
-            updateViews();
-        } catch (InterruptedException e) {
-            LogW.d(LOG_TAG, "CountDownLatch interrupted");
         }
     }
 
     private void updateViews() {
         LogW.d(LOG_TAG, "updating views");
-        final boolean loggedIn = isLoggedIn();
 
         final TextView logInText = (TextView) findViewById(R.id.log_in_text);
         final ImageView profileImage = (ImageView) findViewById(R.id.profile_image);
@@ -253,16 +247,17 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
     public void onClickLogin(View view) {
         LogW.d(LOG_TAG, "view to log in clicked");
-        if (!isLoggedIn()) {
-            openLoginWindow();
+        if (!loggedIn) {
+            openLoginWindow(true);
         } else {
             LogW.e(LOG_TAG, "login clicked while logged in; button should be hidden");
         }
     }
 
-    private void openLoginWindow() {
+    private void openLoginWindow(boolean showDialog) {
         final AuthenticationRequest request = new AuthenticationRequest.Builder(Constants.CLIENT_ID, AuthenticationResponse.Type.CODE, Constants.REDIRECT_URI)
-                .setScopes(new String[]{"playlist-read", "playlist-read-private", "streaming"})
+                .setScopes(new String[]{"user-read-private", "playlist-read", "playlist-read-private", "streaming"})
+                .setShowDialog(showDialog)
                 .build();
 
         AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
@@ -280,15 +275,13 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
 
     @Override
     public void onLoggedIn() {
-        LogW.d(LOG_TAG, "user logged in");
-        playerLoggedInSignal.countDown();
+        LogW.d(LOG_TAG, "player logged in");
         AccessTokenUpdater.start();
     }
 
     @Override
     public void onLoggedOut() {
-        LogW.d(LOG_TAG, "user logged out");
-        playerLoggedInSignal = new CountDownLatch(1);
+        LogW.d(LOG_TAG, "player logged out");
         AccessTokenUpdater.stop();
     }
 
@@ -403,7 +396,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         super.onCreateOptionsMenu(menu);
         getMenuInflater().inflate(R.menu.menu_start, menu);
         MenuItem actionLogOut = menu.findItem(R.id.action_log_out);
-        actionLogOut.setVisible(isLoggedIn());
+        actionLogOut.setVisible(loggedIn);
         return true;
     }
 
@@ -414,7 +407,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
             case R.id.action_log_out:
                 LogW.d(LOG_TAG, getString(R.string.action_log_out) + " clicked");
 
-                if (isLoggedIn()) {
+                if (loggedIn) {
                     pinDialog = Utils.doWhenAuthorized(this, new Utils.Action() {
                         @Override
                         public void execute() {
@@ -423,9 +416,15 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                             }
 
                             SavedPreferences.clearTokenPrefs(ListLockActivity.this);
+
+                            loggedIn = false;
                             updateViews();
+
+                            openLoginWindow(true);
                         }
                     }, adminModeBanner, true);
+                } else {
+                    Log.e(LOG_TAG, "log out button should not be visible if loggedIn = true");
                 }
                 break;
             case R.id.action_pin:
@@ -512,9 +511,9 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         adminMode = on;
     }
 
-    public boolean isLoggedIn() {
-        return MusicService.player() != null && MusicService.player().isLoggedIn();
-    }
+//    public boolean isLoggedIn() {
+//        return MusicService.player() != null && MusicService.player().isLoggedIn();
+//    }
 
     @Override
     protected void onDestroy() {
@@ -527,6 +526,8 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         if (appInfoDialog != null && appInfoDialog.isShowing()) {
             appInfoDialog.dismiss();
         }
+
+        AuthenticationClient.stopLoginActivity(this, REQUEST_CODE);
 
         super.onDestroy();
     }
