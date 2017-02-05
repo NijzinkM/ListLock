@@ -93,6 +93,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                 }, ListLockActivity.this);
             } catch (SpotifyWebRequestException e) {
                 LogW.e(LOG_TAG, "failed to refresh access token", e);
+                SavedPreferences.clearTokenPrefs(this); // Clear tokens so refreshAccessToken will not be called again
                 Utils.showTextBriefly(getString(R.string.auto_login_failed), ListLockActivity.this);
             }
         }
@@ -521,6 +522,8 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
         if (appInfoDialog != null && appInfoDialog.isShowing()) {
             appInfoDialog.dismiss();
         }
+
+        AuthenticationClient.stopLoginActivity(this, REQUEST_CODE);
 
         super.onDestroy();
     }
