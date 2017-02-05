@@ -8,7 +8,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -62,6 +61,8 @@ public class PlayActivity extends AppCompatActivity {
     private AlertDialog pinDialog;
     private AlertDialog removeSongDialog;
     private AlertDialog errorDialog;
+    private SpotifySong newSong;
+    private boolean shouldAddNewSong;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,10 +116,6 @@ public class PlayActivity extends AppCompatActivity {
             }
         });
 
-        playPauseButton = (Button) findViewById(R.id.button_play);
-
-        adminModeBanner = (LinearLayout) findViewById(R.id.admin_mode_banner);
-
         musicConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
@@ -147,6 +144,10 @@ public class PlayActivity extends AppCompatActivity {
                         }
                     }, PlayActivity.this);
                 }
+
+                if (shouldAddNewSong) {
+                    addSearchedSong();
+                }
             }
 
             @Override
@@ -155,6 +156,17 @@ public class PlayActivity extends AppCompatActivity {
                 musicBound = false;
             }
         };
+
+        playPauseButton = (Button) findViewById(R.id.button_play);
+
+        adminModeBanner = (LinearLayout) findViewById(R.id.admin_mode_banner);
+    }
+
+    private void addSearchedSong() {
+        musicService.addSong(newSong);
+        Utils.showTextBriefly(getString(R.string.song_added, newSong.getInfo().getName()), PlayActivity.this);
+        shouldAddNewSong = false; // Add song only once
+        SavedPreferences.setSongs(musicService.getSongs(), PlayActivity.this);
     }
 
     private class MusicTimer extends Timer {
@@ -225,6 +237,10 @@ public class PlayActivity extends AppCompatActivity {
         if (ListLockActivity.inAdminMode()) {
             Utils.setAuthorized(adminModeBanner);
         }
+
+        if (shouldAddNewSong && musicBound) { // If music is not bound, wait for music service to connect
+            addSearchedSong();
+        }
     }
 
     @Override
@@ -233,10 +249,9 @@ public class PlayActivity extends AppCompatActivity {
             final Bundle extras = data.getExtras();
             if (requestCode == SEARCH_REQUEST_CODE) {
                 try {
-                    SpotifySong newSong = new SpotifySong(extras.getString(KEY_SONG_URI));
+                    newSong = new SpotifySong(extras.getString(KEY_SONG_URI));
                     newSong.setLocked(false);
-                    musicService.addSong(newSong);
-                    Utils.showTextBriefly(getString(R.string.song_added, newSong.getInfo().getName()), this);
+                    shouldAddNewSong = true;
                 } catch (SpotifyWebRequestException e) {
                     LogW.e(LOG_TAG, "failed to request song", e);
                     Utils.showTextBriefly(getString(R.string.add_song_failed), this);
@@ -265,8 +280,6 @@ public class PlayActivity extends AppCompatActivity {
                     }
                 }, this);
             }
-
-            SavedPreferences.setSongs(musicService.getSongs(), PlayActivity.this);
         }
     }
 
