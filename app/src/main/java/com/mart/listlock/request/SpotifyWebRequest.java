@@ -500,14 +500,15 @@ public class SpotifyWebRequest {
 
         private String urlText;
         private RequestMethod method;
-        private String accessToken;
         private List<Header> headers;
 
         public RetrieveHTTPSResponse(String urlText, RequestMethod method) {
             this.urlText = urlText;
             this.method = method;
-            this.accessToken = null;
             this.headers = new ArrayList<>();
+
+            headers.add(new Header("User-Agent", USER_AGENT));
+            headers.add(new Header("Accept", "application/json"));
         }
 
         @Override
@@ -522,16 +523,9 @@ public class SpotifyWebRequest {
                     con.setRequestMethod(method.name());
                 }
 
-                if (accessToken != null) {
-                    con.setRequestProperty(Header.AUTHORIZATION, "Bearer " + accessToken);
-                }
-
                 for (Header header : headers) {
                     con.setRequestProperty(header.getParam(), header.getValue());
                 }
-
-                con.setRequestProperty("User-Agent", USER_AGENT);
-                con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
 
                 LogW.d(LOG_TAG, "sending " + con.getRequestMethod() + " request to URL: " + urlText);
 
@@ -552,8 +546,6 @@ public class SpotifyWebRequest {
                 String responseText = responseBuffer.toString();
 
                 response.setResponseText(responseText);
-
-                LogW.d(LOG_TAG, "HTTPS GET request response: " + responseText);
             } catch (IOException e) {
                 response.setException(e);
             }
