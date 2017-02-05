@@ -31,7 +31,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:id="@+id/search_field"
-            android:singleLine="true"/>
+            android:inputType="text"
+            android:maxLines="1" />
 
         <Button
             android:id="@+id/search_button"

@@ -64,18 +64,6 @@ public class SearchActivity extends AppCompatActivity {
 
         allowSearching = true;
 
-        searchField.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if ((event != null && (event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) || (actionId == EditorInfo.IME_ACTION_DONE)) {
-                    LogW.d(LOG_TAG,"enter/done pressed");
-                    for (int i = 0; i < pages; i++) {
-                        search(i);
-                    }
-                }
-                return false;
-            }
-        });
-
         // hide keyboard when search field loses focus
         searchField.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
