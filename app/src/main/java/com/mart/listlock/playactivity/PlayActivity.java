@@ -98,7 +98,19 @@ public class PlayActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                musicService.seekToPosition(seekBar.getProgress());
+                final int progress = seekBar.getProgress();
+
+                Utils.doWhenAuthorized(PlayActivity.this, new Utils.Action() {
+                    @Override
+                    public void execute() {
+                        // Do nothing, just authorize
+                    }
+                }, adminModeBanner, false);
+
+                if (ListLockActivity.inAdminMode()) {
+                    musicService.seekToPosition(progress);
+                }
+
                 trackingTouch = false;
             }
         });
