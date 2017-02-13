@@ -12,6 +12,7 @@ import android.widget.LinearLayout;
 
 import com.mart.listlock.R;
 import com.mart.listlock.common.LogW;
+import com.mart.listlock.common.Notification;
 import com.mart.listlock.common.UserInfo;
 import com.mart.listlock.playactivity.spotifyobjects.SongInfoRemovableRow;
 import com.mart.listlock.playactivity.spotifyobjects.SpotifySong;
@@ -35,6 +36,7 @@ public class MusicService extends Service implements Player.NotificationCallback
     private final IBinder musicBind = new MusicBinder();
     private LinearLayout songListLayout;
     private PlayActivity parent;
+    private Notification notification;
 
     private static Error error;
 
@@ -42,11 +44,15 @@ public class MusicService extends Service implements Player.NotificationCallback
     public void onCreate() {
         super.onCreate();
         LogW.d(LOG_TAG, "created");
+
         songs = new ArrayList<>();
+
         if (mPlayer != null) {
             mPlayer.addNotificationCallback(this);
             mPlayer.setConnectivityStatus(this, getNetworkConnectivity(MusicService.this));
         }
+
+        notification = new Notification(getApplicationContext());
     }
 
     @Override
@@ -57,12 +63,38 @@ public class MusicService extends Service implements Player.NotificationCallback
 
         intent.putExtra(KEY_PLAYBACK_EVENT, event);
 
-        if (event == PlayerEvent.kSpPlaybackNotifyTrackDelivered) {
-            try {
-                next();
-            } catch (MusicServiceException e) {
-                Log.e(LOG_TAG, "could not continue to next song");
-            }
+        switch (event) {
+            case kSpPlaybackNotifyPlay:
+                if (!notification.isShowing()) {
+                    notification.show();
+                }
+
+                Log.d(LOG_TAG, "set 'notification playing' to false");
+                notification.setPlaying(true);
+
+                notification.update();
+                break;
+            case kSpPlaybackNotifyPause:
+                Log.d(LOG_TAG, "set 'notification playing' to false");
+                notification.setPlaying(false);
+
+                notification.update();
+                break;
+            case kSpPlaybackNotifyMetadataChanged:
+                notification.setSongInfo(getCurrentSong().getInfo());
+
+                if (notification.isShowing()) {
+                    Log.d(LOG_TAG, "update notification");
+                    notification.update();
+                }
+                break;
+            case kSpPlaybackNotifyTrackDelivered:
+                try {
+                    next();
+                } catch (MusicServiceException e) {
+                    Log.e(LOG_TAG, "could not continue to next song");
+                }
+                break;
         }
 
         if (intent.hasExtra(KEY_PLAYBACK_EVENT)) {
@@ -277,9 +309,12 @@ public class MusicService extends Service implements Player.NotificationCallback
     public void onDestroy() {
         super.onDestroy();
         LogW.d(LOG_TAG, "service destroyed");
+
         if (mPlayer != null) {
             mPlayer.shutdown();
         }
+
+        notification.hide();
     }
 
 }

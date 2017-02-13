@@ -74,4 +74,7 @@
         ]]>
     </string>
     <string name="playback_error">A playback error occurred: %1$s</string>
+    <string name="notification_now_playing">Current track: %1$s - %2$s</string>
+    <string name="notification_title_playing">ListLock is playing</string>
+    <string name="notification_title_paused">ListLock is paused</string>
 </resources>
