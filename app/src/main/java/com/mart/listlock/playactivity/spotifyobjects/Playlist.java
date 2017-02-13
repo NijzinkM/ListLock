@@ -8,8 +8,8 @@ public class Playlist implements SpotifyObject {
 
     PlaylistInfo playlistInfo;
 
-    public Playlist(String id, String accessToken) throws SpotifyWebRequestException {
-        playlistInfo = SpotifyWebRequest.requestPlaylistInfo(id, accessToken);
+    public Playlist(String id, String owner, String accessToken) throws SpotifyWebRequestException {
+        playlistInfo = SpotifyWebRequest.requestPlaylistInfo(id, owner, accessToken);
     }
 
     @Override

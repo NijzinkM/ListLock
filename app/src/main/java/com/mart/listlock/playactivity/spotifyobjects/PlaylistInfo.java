@@ -8,9 +8,11 @@ import java.util.List;
 public class PlaylistInfo extends Info {
 
     private List<SpotifySong> songs = new ArrayList<>();
+    private String owner;
 
     public void override(PlaylistInfo playlistInfo) {
         super.override(playlistInfo);
+        this.owner = playlistInfo.getOwner();
         songs.addAll(playlistInfo.getSongs());
     }
 
@@ -24,5 +26,13 @@ public class PlaylistInfo extends Info {
 
     public void addSong(SpotifySong songInfo) {
         songs.add(songInfo);
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 }
