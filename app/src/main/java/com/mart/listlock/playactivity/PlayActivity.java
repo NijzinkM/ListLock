@@ -385,7 +385,7 @@ public class PlayActivity extends AppCompatActivity {
     }
 
     public void setPlaying(final boolean playing) {
-        Log.d(LOG_TAG, "setting play button to '" + (playing ? "playing" : "paused") + "'");
+        LogW.d(LOG_TAG, "setting play button to '" + (playing ? "playing" : "paused") + "'");
         playPauseButton.post(new Runnable() {
             @Override
             public void run() {

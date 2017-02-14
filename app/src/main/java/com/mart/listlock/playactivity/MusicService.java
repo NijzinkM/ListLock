@@ -69,34 +69,34 @@ public class MusicService extends Service implements Player.NotificationCallback
                 playing = true;
 
                 if (!notificationWrapper.isPlaying()) {
-                    Log.d(LOG_TAG, "set 'notificationWrapper playing' to true");
+                    LogW.d(LOG_TAG, "set 'notificationWrapper playing' to true");
                     notificationWrapper.setPlaying(true);
 
-                    Log.d(LOG_TAG, "starting updated notification in foreground");
+                    LogW.d(LOG_TAG, "starting updated notification in foreground");
                     startForeground(notificationWrapper.getId(), notificationWrapper.getUpdatedNotification());
                 }
                 break;
             case kSpPlaybackNotifyPause:
                 playing = false;
 
-                Log.d(LOG_TAG, "set 'notificationWrapper playing' to false");
+                LogW.d(LOG_TAG, "set 'notificationWrapper playing' to false");
                 notificationWrapper.setPlaying(false);
 
-                Log.d(LOG_TAG, "starting updated notification in foreground");
+                LogW.d(LOG_TAG, "starting updated notification in foreground");
                 startForeground(notificationWrapper.getId(), notificationWrapper.getUpdatedNotification());
                 break;
             case kSpPlaybackNotifyMetadataChanged:
-                Log.d(LOG_TAG, "updating notification song info");
+                LogW.d(LOG_TAG, "updating notification song info");
                 notificationWrapper.setSongInfo(getCurrentSong().getInfo());
 
-                Log.d(LOG_TAG, "starting updated notification in foreground");
+                LogW.d(LOG_TAG, "starting updated notification in foreground");
                 startForeground(notificationWrapper.getId(), notificationWrapper.getUpdatedNotification());
                 break;
             case kSpPlaybackNotifyTrackDelivered:
                 try {
                     next();
                 } catch (MusicServiceException e) {
-                    Log.e(LOG_TAG, "could not continue to next song");
+                    LogW.e(LOG_TAG, "could not continue to next song");
                 }
                 break;
         }
@@ -223,12 +223,12 @@ public class MusicService extends Service implements Player.NotificationCallback
 
     @Override
     public void onSuccess() {
-        Log.d(LOG_TAG, "operation succes");
+        LogW.d(LOG_TAG, "operation succes");
     }
 
     @Override
     public void onError(Error error) {
-        Log.e(LOG_TAG, "operation error " + error.name());
+        LogW.e(LOG_TAG, "operation error " + error.name());
     }
 
     public boolean isPlaying() {
