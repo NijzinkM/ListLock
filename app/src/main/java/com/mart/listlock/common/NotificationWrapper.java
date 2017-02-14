@@ -1,5 +1,6 @@
 package com.mart.listlock.common;
 
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -12,19 +13,19 @@ import com.mart.listlock.R;
 import com.mart.listlock.playactivity.PlayActivity;
 import com.mart.listlock.playactivity.spotifyobjects.SongInfo;
 
-public class Notification {
+public class NotificationWrapper {
 
-    private static final int NOTIFICATION_ID = 1903;
 
+    private int id;
     private Context context;
     private SongInfo songInfo;
-    private boolean showing;
     private boolean playing;
     private NotificationManager notificationManager;
     private NotificationCompat.Builder builder;
 
-    public Notification(Context context) {
+    public NotificationWrapper(Context context, int id) {
         this.context = context;
+        this.id = id;
 
         builder = new NotificationCompat.Builder(context)
                 .setSmallIcon(R.mipmap.ic_notification)
@@ -52,17 +53,7 @@ public class Notification {
         notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
     }
 
-    public void show() {
-        notificationManager.notify(NOTIFICATION_ID, builder.build());
-        showing = true;
-    }
-
-    public void hide() {
-        notificationManager.cancel(NOTIFICATION_ID);
-        showing = false;
-    }
-
-    public void update() {
+    private void update() {
         builder.setContentText(
                 String.format(
                     context.getString(R.string.notification_now_playing),
@@ -75,10 +66,14 @@ public class Notification {
                 context.getString(R.string.notification_title_playing) :
                 context.getString(R.string.notification_title_paused);
         builder.setContentTitle(title);
+    }
 
-        if (showing) {
-            show();
-        }
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public boolean isPlaying() {
@@ -89,15 +84,12 @@ public class Notification {
         this.playing = playing;
     }
 
-    public SongInfo getSongInfo() {
-        return songInfo;
-    }
-
     public void setSongInfo(SongInfo songInfo) {
         this.songInfo = songInfo;
     }
 
-    public boolean isShowing() {
-        return showing;
+    public Notification getUpdatedNotification() {
+        update();
+        return builder.build();
     }
 }

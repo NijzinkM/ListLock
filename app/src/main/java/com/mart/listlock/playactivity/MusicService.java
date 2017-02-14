@@ -12,7 +12,7 @@ import android.widget.LinearLayout;
 
 import com.mart.listlock.R;
 import com.mart.listlock.common.LogW;
-import com.mart.listlock.common.Notification;
+import com.mart.listlock.common.NotificationWrapper;
 import com.mart.listlock.common.UserInfo;
 import com.mart.listlock.playactivity.spotifyobjects.SongInfoRemovableRow;
 import com.mart.listlock.playactivity.spotifyobjects.SpotifySong;
@@ -36,7 +36,8 @@ public class MusicService extends Service implements Player.NotificationCallback
     private final IBinder musicBind = new MusicBinder();
     private LinearLayout songListLayout;
     private PlayActivity parent;
-    private Notification notification;
+    private NotificationWrapper notificationWrapper;
+    private boolean playing;
 
     private static Error error;
 
@@ -52,7 +53,7 @@ public class MusicService extends Service implements Player.NotificationCallback
             mPlayer.setConnectivityStatus(this, getNetworkConnectivity(MusicService.this));
         }
 
-        notification = new Notification(getApplicationContext());
+        notificationWrapper = new NotificationWrapper(getApplicationContext(), 9188);
     }
 
     @Override
@@ -65,28 +66,31 @@ public class MusicService extends Service implements Player.NotificationCallback
 
         switch (event) {
             case kSpPlaybackNotifyPlay:
-                if (!notification.isShowing()) {
-                    notification.show();
+                playing = true;
+
+                if (!notificationWrapper.isPlaying()) {
+                    Log.d(LOG_TAG, "set 'notificationWrapper playing' to true");
+                    notificationWrapper.setPlaying(true);
+
+                    Log.d(LOG_TAG, "starting updated notification in foreground");
+                    startForeground(notificationWrapper.getId(), notificationWrapper.getUpdatedNotification());
                 }
-
-                Log.d(LOG_TAG, "set 'notification playing' to false");
-                notification.setPlaying(true);
-
-                notification.update();
                 break;
             case kSpPlaybackNotifyPause:
-                Log.d(LOG_TAG, "set 'notification playing' to false");
-                notification.setPlaying(false);
+                playing = false;
 
-                notification.update();
+                Log.d(LOG_TAG, "set 'notificationWrapper playing' to false");
+                notificationWrapper.setPlaying(false);
+
+                Log.d(LOG_TAG, "starting updated notification in foreground");
+                startForeground(notificationWrapper.getId(), notificationWrapper.getUpdatedNotification());
                 break;
             case kSpPlaybackNotifyMetadataChanged:
-                notification.setSongInfo(getCurrentSong().getInfo());
+                Log.d(LOG_TAG, "updating notification song info");
+                notificationWrapper.setSongInfo(getCurrentSong().getInfo());
 
-                if (notification.isShowing()) {
-                    Log.d(LOG_TAG, "update notification");
-                    notification.update();
-                }
+                Log.d(LOG_TAG, "starting updated notification in foreground");
+                startForeground(notificationWrapper.getId(), notificationWrapper.getUpdatedNotification());
                 break;
             case kSpPlaybackNotifyTrackDelivered:
                 try {
@@ -227,6 +231,10 @@ public class MusicService extends Service implements Player.NotificationCallback
         Log.e(LOG_TAG, "operation error " + error.name());
     }
 
+    public boolean isPlaying() {
+        return playing;
+    }
+
     public class MusicBinder extends Binder {
         MusicService getService() {
             return MusicService.this;
@@ -314,7 +322,7 @@ public class MusicService extends Service implements Player.NotificationCallback
             mPlayer.shutdown();
         }
 
-        notification.hide();
+        stopForeground(true);
     }
 
 }

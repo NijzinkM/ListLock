@@ -12,6 +12,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -51,7 +52,6 @@ public class PlayActivity extends AppCompatActivity {
     private SeekBar seekBar;
     private Button playPauseButton;
     private ServiceConnection musicConnection;
-    private boolean playing;
     private Timer timer;
     private boolean trackingTouch;
     private BroadcastReceiver playbackEventReceiver;
@@ -127,6 +127,8 @@ public class PlayActivity extends AppCompatActivity {
                 musicService.setContext(PlayActivity.this);
                 musicBound = true;
 
+                setPlaying(musicService.isPlaying());
+
                 if (!Utils.isNetworkAvailable(PlayActivity.this)) {
                     Utils.showTextBriefly(getString(R.string.no_internet), PlayActivity.this);
                 } else if (musicService.getSongs().isEmpty()) {
@@ -176,15 +178,17 @@ public class PlayActivity extends AppCompatActivity {
                 public void run() {
                     PlaybackState playbackState = MusicService.player().getPlaybackState();
 
-                    setPlaying(playbackState.isPlaying);
+
                     if (MusicService.error() != null) {
                         errorDialog = new AlertDialog.Builder(PlayActivity.this)
                                 .setIcon(android.R.drawable.ic_dialog_alert)
                                 .setMessage(getString(R.string.playback_error, MusicService.error()))
                                 .show();
                         MusicService.resetError();
-                    } else if (playing && !trackingTouch && !MusicService.player().isShutdown() && musicService != null && musicService.getCurrentSong() != null) {
-                        updateSeekBar((int) musicService.getCurrentSong().getInfo().getLength(), (int) playbackState.positionMs);
+                    } else if (musicService != null){
+                        if (musicService.isPlaying() && !trackingTouch && musicService.getCurrentSong() != null) {
+                            updateSeekBar((int) musicService.getCurrentSong().getInfo().getLength(), (int) playbackState.positionMs);
+                        }
                     }
                 }
             }, 0, 1000);
@@ -196,14 +200,8 @@ public class PlayActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             PlayerEvent playbackEvent = (PlayerEvent) intent.getSerializableExtra(MusicService.KEY_PLAYBACK_EVENT);
 
-            // Handle playback event UI consequences
-            switch (playbackEvent) {
-                case kSpPlaybackNotifyPlay:
-                    setPlaying(true);
-                    break;
-                case kSpPlaybackNotifyPause:
-                    setPlaying(false);
-                    break;
+            if (playbackEvent == PlayerEvent.kSpPlaybackNotifyPlay || playbackEvent == PlayerEvent.kSpPlaybackNotifyPause) {
+                setPlaying(musicService.isPlaying());
             }
         }
     }
@@ -324,7 +322,7 @@ public class PlayActivity extends AppCompatActivity {
         LogW.d(LOG_TAG, "view to play/pause clicked");
 
         try {
-            if (playing) {
+            if (musicService.isPlaying()) {
                 musicService.pause();
             } else {
                 musicService.play();
@@ -387,7 +385,7 @@ public class PlayActivity extends AppCompatActivity {
     }
 
     public void setPlaying(final boolean playing) {
-        this.playing = playing;
+        Log.d(LOG_TAG, "setting play button to '" + (playing ? "playing" : "paused") + "'");
         playPauseButton.post(new Runnable() {
             @Override
             public void run() {
