@@ -102,7 +102,7 @@ public class SearchActivity extends AppCompatActivity {
         final int scrollY = scrollView.getScrollY();
         int diff = (view.getBottom() - (scrollView.getHeight() + scrollY));
 
-        Log.d(LOG_TAG, "view bottom: " + view.getBottom() + "; scrollView height + Y: " + scrollView.getHeight() + scrollY);
+        LogW.d(LOG_TAG, "view bottom: " + view.getBottom() + "; scrollView height + Y: " + scrollView.getHeight() + scrollY);
 
         // if diff is zero or less, then the bottom has been reached
         return diff <= 0;

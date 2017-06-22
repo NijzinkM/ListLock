@@ -12,6 +12,7 @@ import android.widget.LinearLayout;
 
 import com.mart.listlock.R;
 import com.mart.listlock.common.LogW;
+import com.mart.listlock.common.NotificationWrapper;
 import com.mart.listlock.common.UserInfo;
 import com.mart.listlock.playactivity.spotifyobjects.SongInfoRemovableRow;
 import com.mart.listlock.playactivity.spotifyobjects.SpotifySong;
@@ -19,10 +20,12 @@ import com.spotify.sdk.android.player.Connectivity;
 import com.spotify.sdk.android.player.Error;
 import com.spotify.sdk.android.player.Player;
 import com.spotify.sdk.android.player.PlayerEvent;
+import com.spotify.sdk.android.player.Spotify;
 import com.spotify.sdk.android.player.SpotifyPlayer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class MusicService extends Service implements Player.NotificationCallback, Player.OperationCallback {
 
@@ -35,6 +38,8 @@ public class MusicService extends Service implements Player.NotificationCallback
     private final IBinder musicBind = new MusicBinder();
     private LinearLayout songListLayout;
     private PlayActivity parent;
+    private NotificationWrapper notificationWrapper;
+    private boolean playing;
 
     private static Error error;
 
@@ -42,11 +47,15 @@ public class MusicService extends Service implements Player.NotificationCallback
     public void onCreate() {
         super.onCreate();
         LogW.d(LOG_TAG, "created");
+
         songs = new ArrayList<>();
+
         if (mPlayer != null) {
             mPlayer.addNotificationCallback(this);
             mPlayer.setConnectivityStatus(this, getNetworkConnectivity(MusicService.this));
         }
+
+        notificationWrapper = new NotificationWrapper(getApplicationContext(), 9188);
     }
 
     @Override
@@ -57,12 +66,41 @@ public class MusicService extends Service implements Player.NotificationCallback
 
         intent.putExtra(KEY_PLAYBACK_EVENT, event);
 
-        if (event == PlayerEvent.kSpPlaybackNotifyTrackDelivered) {
-            try {
-                next();
-            } catch (MusicServiceException e) {
-                Log.e(LOG_TAG, "could not continue to next song");
-            }
+        switch (event) {
+            case kSpPlaybackNotifyPlay:
+                playing = true;
+
+                if (!notificationWrapper.isPlaying()) {
+                    LogW.d(LOG_TAG, "set 'notificationWrapper playing' to true");
+                    notificationWrapper.setPlaying(true);
+
+                    LogW.d(LOG_TAG, "starting updated notification in foreground");
+                    startForeground(notificationWrapper.getId(), notificationWrapper.getUpdatedNotification());
+                }
+                break;
+            case kSpPlaybackNotifyPause:
+                playing = false;
+
+                LogW.d(LOG_TAG, "set 'notificationWrapper playing' to false");
+                notificationWrapper.setPlaying(false);
+
+                LogW.d(LOG_TAG, "starting updated notification in foreground");
+                startForeground(notificationWrapper.getId(), notificationWrapper.getUpdatedNotification());
+                break;
+            case kSpPlaybackNotifyMetadataChanged:
+                LogW.d(LOG_TAG, "updating notification song info");
+                notificationWrapper.setSongInfo(getCurrentSong().getInfo());
+
+                LogW.d(LOG_TAG, "starting updated notification in foreground");
+                startForeground(notificationWrapper.getId(), notificationWrapper.getUpdatedNotification());
+                break;
+            case kSpPlaybackNotifyTrackDelivered:
+                try {
+                    next();
+                } catch (MusicServiceException e) {
+                    LogW.e(LOG_TAG, "could not continue to next song");
+                }
+                break;
         }
 
         if (intent.hasExtra(KEY_PLAYBACK_EVENT)) {
@@ -187,12 +225,16 @@ public class MusicService extends Service implements Player.NotificationCallback
 
     @Override
     public void onSuccess() {
-        Log.d(LOG_TAG, "operation succes");
+        LogW.d(LOG_TAG, "operation succes");
     }
 
     @Override
     public void onError(Error error) {
-        Log.e(LOG_TAG, "operation error " + error.name());
+        LogW.e(LOG_TAG, "operation error " + error.name());
+    }
+
+    public boolean isPlaying() {
+        return playing;
     }
 
     public class MusicBinder extends Binder {
@@ -275,11 +317,19 @@ public class MusicService extends Service implements Player.NotificationCallback
 
     @Override
     public void onDestroy() {
+        Spotify.destroyPlayer(mPlayer);
+
+        try {
+            Spotify.awaitDestroyPlayer(mPlayer, 3, TimeUnit.SECONDS);
+            LogW.d(LOG_TAG, "player destroyed");
+        } catch (InterruptedException e) {
+            LogW.e(LOG_TAG, "awaiting destroy player interrupted", e);
+        }
+
+        stopForeground(true);
+
         super.onDestroy();
         LogW.d(LOG_TAG, "service destroyed");
-        if (mPlayer != null) {
-            mPlayer.shutdown();
-        }
     }
 
 }

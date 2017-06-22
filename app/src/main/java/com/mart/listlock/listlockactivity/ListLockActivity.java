@@ -424,7 +424,7 @@ public class ListLockActivity extends AppCompatActivity implements ConnectionSta
                         }
                     }, adminModeBanner, true);
                 } else {
-                    Log.e(LOG_TAG, "log out button should not be visible if loggedIn = true");
+                    LogW.e(LOG_TAG, "log out button should not be visible if loggedIn = true");
                 }
                 break;
             case R.id.action_pin:
