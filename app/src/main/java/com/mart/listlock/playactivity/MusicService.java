@@ -20,10 +20,12 @@ import com.spotify.sdk.android.player.Connectivity;
 import com.spotify.sdk.android.player.Error;
 import com.spotify.sdk.android.player.Player;
 import com.spotify.sdk.android.player.PlayerEvent;
+import com.spotify.sdk.android.player.Spotify;
 import com.spotify.sdk.android.player.SpotifyPlayer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class MusicService extends Service implements Player.NotificationCallback, Player.OperationCallback {
 
@@ -315,14 +317,19 @@ public class MusicService extends Service implements Player.NotificationCallback
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
-        LogW.d(LOG_TAG, "service destroyed");
+        Spotify.destroyPlayer(mPlayer);
 
-        if (mPlayer != null) {
-            mPlayer.shutdown();
+        try {
+            Spotify.awaitDestroyPlayer(mPlayer, 3, TimeUnit.SECONDS);
+            LogW.d(LOG_TAG, "player destroyed");
+        } catch (InterruptedException e) {
+            LogW.e(LOG_TAG, "awaiting destroy player interrupted", e);
         }
 
         stopForeground(true);
+
+        super.onDestroy();
+        LogW.d(LOG_TAG, "service destroyed");
     }
 
 }
