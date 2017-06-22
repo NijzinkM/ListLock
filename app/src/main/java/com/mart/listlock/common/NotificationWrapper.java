@@ -54,13 +54,19 @@ public class NotificationWrapper {
     }
 
     private void update() {
-        builder.setContentText(
-                String.format(
+        String songInfoString;
+
+        if (songInfo != null) {
+            songInfoString = String.format(
                     context.getString(R.string.notification_now_playing),
                     songInfo.getName(),
                     songInfo.getArtists().get(0).getInfo().getName()
-                )
             );
+        } else {
+            songInfoString = context.getString(R.string.no_song_playing);
+        }
+
+        builder.setContentText(songInfoString);
 
         final String title = playing ?
                 context.getString(R.string.notification_title_playing) :
